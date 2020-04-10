@@ -1,0 +1,42 @@
+version: "3.7"
+
+services:
+  bingsoo:
+    build: .
+    image: bingsoo:latest
+    ports:
+      - 8080:8080
+    env_file: ./.env
+    environment:
+      PORT: 8080
+
+  postgres:
+    image: postgres:12.2-alpine
+    ports:
+      - 5432:5432
+    environment:
+      POSTGRES_DB: bingsoo
+      POSTGRES_PASSWORD: bingsoo
+      POSTGRES_USER: bingsoo
+
+  postgres.init:
+    image: migrate/migrate:v4.10.0
+    environment:
+      MIGRATIONS_DIR: /postgres/migrations
+      POSTGRES_DB: bingsoo
+      POSTGRES_HOST: db.postgres:5432
+      POSTGRES_PASSWORD: bingsoo
+      POSTGRES_USER: bingsoo
+    entrypoint:
+      - wait-for
+      - db.postgres:5432
+      - --
+      - /postgres/run-migrations.sh
+    volumes:
+      - ./bin/wait-for:/usr/local/bin/wait-for
+      - ./databases/postgres:/postgres
+
+  redis:
+    image: redis:5.0-alpine
+    ports:
+      - 6379:6379
