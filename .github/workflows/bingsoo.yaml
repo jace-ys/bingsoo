@@ -1,0 +1,31 @@
+name: bingsoo
+
+on: push
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-go@v1
+        with:
+          go-version: "1.14"
+      - uses: actions/cache@v1
+        with:
+          path: ~/go/pkg/mod
+          key: ${{ runner.os }}-bingsoo-${{ hashFiles('go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-bingsoo
+      - name: Setup environment
+        run: |
+          echo "SLACK_ACCESS_TOKEN=" >> .env
+          echo "SLACK_SIGNING_SECRET=" >> .env
+      - name: Install dependencies
+        run: go mod download
+      - name: Lint
+        run: |
+          if [[ -n "$(gofmt -l .)" ]]; then
+            exit 1
+          fi
+      - name: Run tests
+        run: make test
