@@ -10,6 +10,7 @@ import (
 	"github.com/go-kit/kit/log/level"
 
 	"github.com/jace-ys/bingsoo/pkg/bingsoo"
+	"github.com/jace-ys/bingsoo/pkg/slack"
 )
 
 var logger log.Logger
@@ -20,7 +21,8 @@ func main() {
 	logger = log.NewJSONLogger(log.NewSyncWriter(os.Stdout))
 	logger = log.With(logger, "ts", log.DefaultTimestampUTC, "caller", log.DefaultCaller)
 
-	bot := bingsoo.NewBingsooBot(logger)
+	slack := slack.NewHandler(c.slack.AccessToken, c.slack.SigningSecret)
+	bot := bingsoo.NewBingsooBot(logger, slack)
 
 	level.Info(logger).Log("event", "server.started", "port", c.port)
 	err := http.ListenAndServe(fmt.Sprintf(":%d", c.port), bot.Handle())
@@ -31,7 +33,7 @@ func main() {
 
 type config struct {
 	port  int
-	slack bingsoo.SlackConfig
+	slack slack.Config
 }
 
 func parseCommand() *config {

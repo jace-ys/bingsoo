@@ -4,7 +4,7 @@ TARGET = bingsoo
 SOURCE = cmd/bingsoo/main.go
 DEPENDENCIES = postgres postgres.init redis
 
-.PHONY: all build run dependencies test format
+.PHONY: all build run proxy dependencies test format
 
 all: format run
 
@@ -18,6 +18,9 @@ run:
 		--port 8080 \
 		--slack-access-token ${SLACK_ACCESS_TOKEN} \
 		--slack-signing-secret ${SLACK_SIGNING_SECRET}
+
+proxy:
+	ngrok http 8080
 
 dependencies:
 	@echo "==> Starting auxiliary containers.."
