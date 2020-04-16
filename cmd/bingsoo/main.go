@@ -19,7 +19,7 @@ var logger log.Logger
 func main() {
 	c := parseCommand()
 
-	logger = log.NewJSONLogger(log.NewSyncWriter(os.Stdout))
+	logger = log.NewLogfmtLogger(log.NewSyncWriter(os.Stdout))
 	logger = log.With(logger, "ts", log.DefaultTimestampUTC, "caller", log.DefaultCaller)
 
 	slack := slack.NewHandler(c.slack.AccessToken, c.slack.SigningSecret)
@@ -70,6 +70,6 @@ func parseCommand() *config {
 }
 
 func exit(err error) {
-	level.Error(logger).Log("event", "app.fatal", "msg", err)
+	level.Error(logger).Log("event", "app.fatal", "error", err)
 	os.Exit(1)
 }
