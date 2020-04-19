@@ -11,23 +11,26 @@ import (
 	"github.com/gorilla/mux"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 
+	"github.com/jace-ys/bingsoo/pkg/postgres"
 	"github.com/jace-ys/bingsoo/pkg/slack"
 	"github.com/jace-ys/bingsoo/pkg/worker"
 )
 
 type BingsooBot struct {
-	logger log.Logger
-	slack  *slack.Handler
-	server *http.Server
-	worker *worker.WorkerPool
+	logger   log.Logger
+	slack    *slack.Handler
+	server   *http.Server
+	worker   *worker.WorkerPool
+	database *postgres.Client
 }
 
-func NewBingsooBot(logger log.Logger, slack *slack.Handler, worker *worker.WorkerPool) *BingsooBot {
+func NewBingsooBot(logger log.Logger, slack *slack.Handler, worker *worker.WorkerPool, postgres *postgres.Client) *BingsooBot {
 	bot := &BingsooBot{
-		logger: logger,
-		slack:  slack,
-		server: &http.Server{},
-		worker: worker,
+		logger:   logger,
+		slack:    slack,
+		server:   &http.Server{},
+		worker:   worker,
+		database: postgres,
 	}
 	bot.server.Handler = bot.handler()
 	return bot

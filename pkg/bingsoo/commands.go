@@ -1,6 +1,7 @@
 package bingsoo
 
 import (
+	"errors"
 	"fmt"
 	"net/http"
 	"strings"
@@ -20,6 +21,8 @@ func (bot *BingsooBot) commands(w http.ResponseWriter, r *http.Request) {
 	level.Info(bot.logger).Log("event", "command.started")
 	defer level.Info(bot.logger).Log("event", "command.finished")
 
+	ctx := r.Context()
+
 	s, err := slack.SlashCommandParse(r)
 	if err != nil {
 		return
@@ -28,29 +31,56 @@ func (bot *BingsooBot) commands(w http.ResponseWriter, r *http.Request) {
 	command := bot.parseCommandText(s.Text)
 	level.Info(bot.logger).Log("event", "command.parsed", "action", command.action)
 
+	team, err := bot.getTeam(ctx, s.TeamID)
+	if err != nil {
+		level.Info(bot.logger).Log("event", "team.get", "team", s.TeamID, "error", err)
+		w.WriteHeader(http.StatusUnauthorized)
+		return
+	}
+
 	switch command.action {
 	case "help":
 		bot.sendJSON(w, http.StatusOK, &slack.Msg{
 			ResponseType: slack.ResponseTypeEphemeral,
-			Blocks:       message.HelpBlock(),
+			Blocks:       message.HelpBlock(team.ChannelID),
 		})
+
 	case "start":
-		err := bot.validateStartRequest(s.ChannelName)
+		session, err := bot.newIcebreakerSession(team)
 		if err != nil {
-			level.Info(bot.logger).Log("event", "start.rejected", "channel", s.ChannelName, "error", err)
+			level.Info(bot.logger).Log("event", "session.created", "error", err)
 			bot.sendJSON(w, http.StatusOK, &slack.Msg{
 				ResponseType: slack.ResponseTypeEphemeral,
-				Text:         "Icebreaker sessions can only be started in the #icebreakers channel.",
+				Text:         fmt.Sprintf("Hey <@%s>! I'm having some trouble starting the icebreaker session right now. Please try again later.", s.UserID),
 			})
 			return
 		}
 
-		bot.startIcebreakerSession(command)
+		err = session.start(ctx, s.ChannelID)
+		if err != nil {
+			level.Info(bot.logger).Log("event", "session.failed", "error", err)
+			switch {
+			case errors.Is(err, ErrInvalidIcebreakersChannel):
+				bot.sendJSON(w, http.StatusOK, &slack.Msg{
+					ResponseType: slack.ResponseTypeEphemeral,
+					Text:         fmt.Sprintf("Hey <@%s>! Icebreaker sessions can only be started in the <#%s> channel.", s.UserID, team.ChannelID),
+				})
+				return
+			default:
+				bot.sendJSON(w, http.StatusOK, &slack.Msg{
+					ResponseType: slack.ResponseTypeEphemeral,
+					Text:         fmt.Sprintf("Hey <@%s>! I'm having some trouble starting the icebreaker session right now. Please try again later.", s.UserID),
+				})
+				return
+			}
+		}
+
 		w.WriteHeader(http.StatusOK)
+
 	default:
 		bot.sendJSON(w, http.StatusOK, &slack.Msg{
 			ResponseType: slack.ResponseTypeEphemeral,
-			Blocks:       message.HelpBlock(),
+			Blocks:       message.HelpBlock(team.ChannelID),
 		})
 	}
 }
@@ -61,17 +91,4 @@ func (bot *BingsooBot) parseCommandText(text string) *command {
 		action:     split[0],
 		parameters: split[1:],
 	}
-}
-
-func (bot *BingsooBot) validateStartRequest(channelName string) error {
-	if channelName != "icebreakers" {
-		return fmt.Errorf("invalid channel")
-	}
-	return nil
-}
-
-func (bot *BingsooBot) startIcebreakerSession(command *command) error {
-	level.Info(bot.logger).Log("event", "session.started")
-	defer level.Info(bot.logger).Log("event", "session.finished")
-	return nil
 }

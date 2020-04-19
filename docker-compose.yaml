@@ -8,8 +8,12 @@ services:
       - 8080:8080
     env_file: ./.env
     environment:
-      PORT: 8080
       CONCURRENCY: 4
+      PORT: 8080
+      POSTGRES_DB: bingsoo
+      POSTGRES_HOST: postgres:5432
+      POSTGRES_PASSWORD: bingsoo
+      POSTGRES_USER: bingsoo
 
   postgres:
     image: postgres:12.2-alpine

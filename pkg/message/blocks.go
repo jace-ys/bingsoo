@@ -1,11 +1,15 @@
 package message
 
-import "github.com/slack-go/slack"
+import (
+	"fmt"
 
-func HelpBlock() slack.Blocks {
+	"github.com/slack-go/slack"
+)
+
+func HelpBlock(channelID string) slack.Blocks {
 	headerText := "Hey there, I'm Bingsoo :wave::skin-tone-2: I'm here to host interactive icebreaker sessions to help you get to know your teammates better! :tada:"
 	helpText := ":question: `/bingsoo help` displays useful information on using Bingsoo."
-	startText := ":shaved_ice: `/bingsoo start` starts an icebreaker session in the #icebreakers channel."
+	startText := fmt.Sprintf(":shaved_ice: `/bingsoo start` starts an icebreaker session in the <#%s> channel.", channelID)
 
 	headerTextBlock := slack.NewTextBlockObject(slack.MarkdownType, headerText, false, false)
 	headerSectionBlock := slack.NewSectionBlock(headerTextBlock, nil, nil)

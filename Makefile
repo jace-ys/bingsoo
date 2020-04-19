@@ -17,6 +17,10 @@ run:
 	@go run ${SOURCE} \
 		--port 8080 \
 		--concurrency 4 \
+		--postgres-host 127.0.0.1:5432 \
+		--postgres-user bingsoo \
+		--postgres-password bingsoo \
+		--postgres-db bingsoo \
 		--slack-access-token ${SLACK_ACCESS_TOKEN} \
 		--slack-signing-secret ${SLACK_SIGNING_SECRET}
 

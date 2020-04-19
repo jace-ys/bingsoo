@@ -10,6 +10,7 @@ import (
 	"golang.org/x/sync/errgroup"
 
 	"github.com/jace-ys/bingsoo/pkg/bingsoo"
+	"github.com/jace-ys/bingsoo/pkg/postgres"
 	"github.com/jace-ys/bingsoo/pkg/slack"
 	"github.com/jace-ys/bingsoo/pkg/worker"
 )
@@ -22,9 +23,14 @@ func main() {
 	logger = log.NewLogfmtLogger(log.NewSyncWriter(os.Stdout))
 	logger = log.With(logger, "ts", log.DefaultTimestampUTC, "caller", log.DefaultCaller)
 
+	postgres, err := postgres.NewClient(c.database.Host, c.database.User, c.database.Password, c.database.Database)
+	if err != nil {
+		exit(err)
+	}
+
 	slack := slack.NewHandler(c.slack.AccessToken, c.slack.SigningSecret)
 	worker := worker.NewWorkerPool()
-	bot := bingsoo.NewBingsooBot(logger, slack, worker)
+	bot := bingsoo.NewBingsooBot(logger, slack, worker, postgres)
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
@@ -54,6 +60,7 @@ func main() {
 type config struct {
 	port        int
 	concurrency int
+	database    postgres.ClientConfig
 	slack       slack.Config
 }
 
@@ -62,6 +69,10 @@ func parseCommand() *config {
 
 	kingpin.Flag("port", "Port for the Bingsoo server.").Default("8080").IntVar(&c.port)
 	kingpin.Flag("concurrency", "Number of concurrent workers to process tasks.").Default("4").IntVar(&c.concurrency)
+	kingpin.Flag("postgres-host", "Host for connecting to Postgres").Default("127.0.0.1:5432").StringVar(&c.database.Host)
+	kingpin.Flag("postgres-user", "User for connecting to Postgres").Default("postgres").StringVar(&c.database.User)
+	kingpin.Flag("postgres-password", "Password for connecting to Postgres").Required().StringVar(&c.database.Password)
+	kingpin.Flag("postgres-db", "Database for connecting to Postgres").Default("postgres").StringVar(&c.database.Database)
 	kingpin.Flag("slack-access-token", "Bot user access token for authenticating with the Slack API.").Required().StringVar(&c.slack.AccessToken)
 	kingpin.Flag("slack-signing-secret", "Signing secret for verifying requests from Slack.").Required().StringVar(&c.slack.SigningSecret)
 	kingpin.Parse()
