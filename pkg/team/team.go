@@ -1,4 +1,4 @@
-package bingsoo
+package team
 
 import (
 	"context"
@@ -8,9 +8,15 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/jmoiron/sqlx"
+
+	"github.com/jace-ys/bingsoo/pkg/postgres"
 )
 
-type team struct {
+var (
+	ErrTeamNotFound = errors.New("team not found")
+)
+
+type Team struct {
 	ID                  *uuid.UUID
 	CreatedAt           *time.Time
 	TeamID              string
@@ -20,9 +26,19 @@ type team struct {
 	SessionDurationMins int
 }
 
-func (bot *BingsooBot) getTeam(ctx context.Context, teamID string) (*team, error) {
-	var team team
-	err := bot.database.Transact(ctx, func(tx *sqlx.Tx) error {
+type Registry struct {
+	database *postgres.Client
+}
+
+func NewRegistry(database *postgres.Client) *Registry {
+	return &Registry{
+		database: database,
+	}
+}
+
+func (r *Registry) Get(ctx context.Context, teamID string) (*Team, error) {
+	var team Team
+	err := r.database.Transact(ctx, func(tx *sqlx.Tx) error {
 		query := `
 		SELECT t.id, t.team_id, t.team_domain, t.channel_id, t.created_at, t.session_duration_mins
 		FROM teams AS t

@@ -1,36 +1,45 @@
 package bingsoo
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"net/http"
 
 	"github.com/go-kit/kit/log"
 	"github.com/go-kit/kit/log/level"
 	"github.com/gorilla/mux"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
+	"github.com/slack-go/slack"
 
-	"github.com/jace-ys/bingsoo/pkg/postgres"
-	"github.com/jace-ys/bingsoo/pkg/slack"
+	"github.com/jace-ys/bingsoo/pkg/team"
 	"github.com/jace-ys/bingsoo/pkg/worker"
 )
 
-type BingsooBot struct {
-	logger   log.Logger
-	slack    *slack.Handler
-	server   *http.Server
-	worker   *worker.WorkerPool
-	database *postgres.Client
+type BingsooBotConfig struct {
+	SigningSecret string
+	AccessToken   string
 }
 
-func NewBingsooBot(logger log.Logger, slack *slack.Handler, worker *worker.WorkerPool, postgres *postgres.Client) *BingsooBot {
+type BingsooBot struct {
+	logger log.Logger
+	server *http.Server
+	worker *worker.WorkerPool
+	teams  *team.Registry
+	secret string
+	token  string
+}
+
+func NewBingsooBot(logger log.Logger, worker *worker.WorkerPool, teams *team.Registry, secret, token string) *BingsooBot {
 	bot := &BingsooBot{
-		logger:   logger,
-		slack:    slack,
-		server:   &http.Server{},
-		worker:   worker,
-		database: postgres,
+		logger: logger,
+		server: &http.Server{},
+		worker: worker,
+		teams:  teams,
+		secret: secret,
+		token:  token,
 	}
 	bot.server.Handler = bot.handler()
 	return bot
@@ -79,7 +88,7 @@ func (bot *BingsooBot) handler() http.Handler {
 
 func (bot *BingsooBot) verifySignatureMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		err := bot.slack.VerifySignature(r)
+		err := bot.verifySignature(r)
 		if err != nil {
 			level.Error(bot.logger).Log("event", "signature.verified", "error", err)
 			w.WriteHeader(http.StatusUnauthorized)
@@ -87,6 +96,26 @@ func (bot *BingsooBot) verifySignatureMiddleware(next http.Handler) http.Handler
 		}
 		next.ServeHTTP(w, r)
 	})
+}
+
+func (bot *BingsooBot) verifySignature(r *http.Request) error {
+	verifier, err := slack.NewSecretsVerifier(r.Header, bot.secret)
+	if err != nil {
+		return err
+	}
+
+	body, err := ioutil.ReadAll(r.Body)
+	if err != nil {
+		return err
+	}
+	r.Body = ioutil.NopCloser(bytes.NewBuffer(body))
+
+	_, err = verifier.Write(body)
+	if err != nil {
+		return err
+	}
+
+	return verifier.Ensure()
 }
 
 func (bot *BingsooBot) sendJSON(w http.ResponseWriter, code int, res interface{}) {

@@ -9,6 +9,7 @@ import (
 	"github.com/go-kit/kit/log/level"
 	"github.com/slack-go/slack"
 
+	"github.com/jace-ys/bingsoo/pkg/icebreaker"
 	"github.com/jace-ys/bingsoo/pkg/message"
 )
 
@@ -31,7 +32,7 @@ func (bot *BingsooBot) commands(w http.ResponseWriter, r *http.Request) {
 	command := bot.parseCommandText(s.Text)
 	level.Info(bot.logger).Log("event", "command.parsed", "action", command.action)
 
-	team, err := bot.getTeam(ctx, s.TeamID)
+	team, err := bot.teams.Get(ctx, s.TeamID)
 	if err != nil {
 		level.Info(bot.logger).Log("event", "team.get", "team", s.TeamID, "error", err)
 		w.WriteHeader(http.StatusUnauthorized)
@@ -46,7 +47,7 @@ func (bot *BingsooBot) commands(w http.ResponseWriter, r *http.Request) {
 		})
 
 	case "start":
-		session, err := bot.newIcebreakerSession(team)
+		session, err := icebreaker.NewSession(bot.logger, team, bot.token)
 		if err != nil {
 			level.Info(bot.logger).Log("event", "session.created", "error", err)
 			bot.sendJSON(w, http.StatusOK, &slack.Msg{
@@ -56,11 +57,11 @@ func (bot *BingsooBot) commands(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		err = session.start(ctx, s.ChannelID)
+		err = session.Start(ctx, s.ChannelID)
 		if err != nil {
 			level.Info(bot.logger).Log("event", "session.failed", "error", err)
 			switch {
-			case errors.Is(err, ErrInvalidIcebreakersChannel):
+			case errors.Is(err, icebreaker.ErrUnauthorizedChannel):
 				bot.sendJSON(w, http.StatusOK, &slack.Msg{
 					ResponseType: slack.ResponseTypeEphemeral,
 					Text:         fmt.Sprintf("Hey <@%s>! Icebreaker sessions can only be started in the <#%s> channel.", s.UserID, team.ChannelID),
@@ -74,8 +75,6 @@ func (bot *BingsooBot) commands(w http.ResponseWriter, r *http.Request) {
 				return
 			}
 		}
-
-		w.WriteHeader(http.StatusOK)
 
 	default:
 		bot.sendJSON(w, http.StatusOK, &slack.Msg{
