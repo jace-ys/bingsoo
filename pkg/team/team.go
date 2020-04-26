@@ -17,11 +17,11 @@ var (
 )
 
 type Team struct {
-	ID                  *uuid.UUID
-	CreatedAt           *time.Time
+	ID                  uuid.UUID
+	CreatedAt           time.Time
 	TeamID              string
 	TeamDomain          string
-	BotToken            string
+	AccessToken         string
 	ChannelID           string
 	SessionDurationMins int
 }
@@ -40,7 +40,7 @@ func (r *Registry) Get(ctx context.Context, teamID string) (*Team, error) {
 	var team Team
 	err := r.database.Transact(ctx, func(tx *sqlx.Tx) error {
 		query := `
-		SELECT t.id, t.team_id, t.team_domain, t.channel_id, t.created_at, t.session_duration_mins
+		SELECT t.id, t.created_at, t.team_id, t.team_domain, t.access_token, t.channel_id, t.session_duration_mins
 		FROM teams AS t
 		WHERE t.team_id=$1
 		`

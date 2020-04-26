@@ -14,6 +14,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/slack-go/slack"
 
+	"github.com/jace-ys/bingsoo/pkg/icebreaker"
 	"github.com/jace-ys/bingsoo/pkg/team"
 	"github.com/jace-ys/bingsoo/pkg/worker"
 )
@@ -24,22 +25,24 @@ type BingsooBotConfig struct {
 }
 
 type BingsooBot struct {
-	logger log.Logger
-	server *http.Server
-	worker *worker.WorkerPool
-	teams  *team.Registry
-	secret string
-	token  string
+	logger  log.Logger
+	server  *http.Server
+	worker  *worker.WorkerPool
+	team    *team.Registry
+	session *icebreaker.SessionManager
+	secret  string
+	token   string
 }
 
-func NewBingsooBot(logger log.Logger, worker *worker.WorkerPool, teams *team.Registry, secret, token string) *BingsooBot {
+func NewBingsooBot(logger log.Logger, team *team.Registry, session *icebreaker.SessionManager, secret, token string) *BingsooBot {
 	bot := &BingsooBot{
-		logger: logger,
-		server: &http.Server{},
-		worker: worker,
-		teams:  teams,
-		secret: secret,
-		token:  token,
+		logger:  logger,
+		server:  &http.Server{},
+		worker:  worker.NewWorkerPool(),
+		team:    team,
+		session: session,
+		secret:  secret,
+		token:   token,
 	}
 	bot.server.Handler = bot.handler()
 	return bot

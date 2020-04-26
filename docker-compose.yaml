@@ -14,6 +14,7 @@ services:
       POSTGRES_HOST: postgres:5432
       POSTGRES_PASSWORD: bingsoo
       POSTGRES_USER: bingsoo
+      REDIS_HOST: redis:6379
 
   postgres:
     image: postgres:12.2-alpine

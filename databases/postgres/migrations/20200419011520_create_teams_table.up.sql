@@ -3,6 +3,7 @@ CREATE TABLE IF NOT EXISTS teams (
   created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
   team_id TEXT UNIQUE NOT NULL,
   team_domain TEXT UNIQUE NOT NULL,
+  access_token TEXT UNIQUE NOT NULL,
   channel_id TEXT NOT NULL,
   session_duration_mins INTEGER,
   PRIMARY KEY (id)

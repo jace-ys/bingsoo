@@ -29,3 +29,5 @@ jobs:
           fi
       - name: Run tests
         run: make test
+      - name: Buildimage
+        run: make image

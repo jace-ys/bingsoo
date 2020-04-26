@@ -4,16 +4,16 @@ import (
 	"context"
 	"os"
 
-	"github.com/jace-ys/bingsoo/pkg/team"
-
 	"github.com/alecthomas/kingpin"
 	"github.com/go-kit/kit/log"
 	"github.com/go-kit/kit/log/level"
 	"golang.org/x/sync/errgroup"
 
 	"github.com/jace-ys/bingsoo/pkg/bingsoo"
+	"github.com/jace-ys/bingsoo/pkg/icebreaker"
 	"github.com/jace-ys/bingsoo/pkg/postgres"
-	"github.com/jace-ys/bingsoo/pkg/worker"
+	"github.com/jace-ys/bingsoo/pkg/redis"
+	"github.com/jace-ys/bingsoo/pkg/team"
 )
 
 var logger log.Logger
@@ -28,10 +28,14 @@ func main() {
 	if err != nil {
 		exit(err)
 	}
+	redis, err := redis.NewClient(c.cache.Host)
+	if err != nil {
+		exit(err)
+	}
 
-	teams := team.NewRegistry(postgres)
-	worker := worker.NewWorkerPool()
-	bot := bingsoo.NewBingsooBot(logger, worker, teams, c.bot.SigningSecret, c.bot.AccessToken)
+	team := team.NewRegistry(postgres)
+	session := icebreaker.NewSessionManager(logger, redis)
+	bot := bingsoo.NewBingsooBot(logger, team, session, c.bot.SigningSecret, c.bot.AccessToken)
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
@@ -63,6 +67,7 @@ type config struct {
 	concurrency int
 	bot         bingsoo.BingsooBotConfig
 	database    postgres.ClientConfig
+	cache       redis.ClientConfig
 }
 
 func parseCommand() *config {
@@ -76,6 +81,7 @@ func parseCommand() *config {
 	kingpin.Flag("postgres-user", "User for connecting to Postgres").Default("postgres").StringVar(&c.database.User)
 	kingpin.Flag("postgres-password", "Password for connecting to Postgres").Required().StringVar(&c.database.Password)
 	kingpin.Flag("postgres-db", "Database for connecting to Postgres").Default("postgres").StringVar(&c.database.Database)
+	kingpin.Flag("redis-host", "Host for connecting to Redis").Default("127.0.0.1:6379").StringVar(&c.cache.Host)
 	kingpin.Parse()
 
 	return &c

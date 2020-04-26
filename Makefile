@@ -22,10 +22,14 @@ run:
 		--postgres-host 127.0.0.1:5432 \
 		--postgres-user bingsoo \
 		--postgres-password bingsoo \
-		--postgres-db bingsoo
+		--postgres-db bingsoo \
+		--redis-host 127.0.0.1:6379
+
+image:
+	@docker-compose build bingsoo
 
 proxy:
-	ngrok http 8080
+	@ngrok http 8080
 
 dependencies:
 	@echo "==> Starting auxiliary containers.."

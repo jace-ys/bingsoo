@@ -7,23 +7,18 @@ import (
 	"github.com/gomodule/redigo/redis"
 )
 
-type Client interface {
-	Transact(ctx context.Context, fn func(redis.Conn) error) error
-	Close() error
-}
-
-type Config struct {
+type ClientConfig struct {
 	Host string
 }
 
-type RedisClient struct {
-	config *Config
+type Client struct {
+	config *ClientConfig
 	*redis.Pool
 }
 
-func NewRedisClient(host string) (*RedisClient, error) {
-	r := RedisClient{
-		config: &Config{
+func NewClient(host string) (*Client, error) {
+	r := Client{
+		config: &ClientConfig{
 			Host: host,
 		},
 	}
@@ -35,19 +30,19 @@ func NewRedisClient(host string) (*RedisClient, error) {
 	return &r, nil
 }
 
-func (r *RedisClient) init() error {
+func (c *Client) init() error {
 	pool := &redis.Pool{
 		Dial: func() (redis.Conn, error) {
-			return redis.Dial("tcp", r.config.Host)
+			return redis.Dial("tcp", c.config.Host)
 		},
 	}
-	r.Pool = pool
+	c.Pool = pool
 
 	return nil
 }
 
-func (r *RedisClient) Transact(ctx context.Context, fn func(redis.Conn) error) error {
-	conn, err := r.Pool.GetContext(ctx)
+func (c *Client) Transact(ctx context.Context, fn func(redis.Conn) error) error {
+	conn, err := c.Pool.GetContext(ctx)
 	if err != nil {
 		return fmt.Errorf("redis transaction failed: %w", err)
 	}
