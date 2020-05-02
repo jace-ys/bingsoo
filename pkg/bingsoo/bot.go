@@ -14,7 +14,10 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/slack-go/slack"
 
-	"github.com/jace-ys/bingsoo/pkg/icebreaker"
+	"github.com/jace-ys/bingsoo/pkg/postgres"
+	"github.com/jace-ys/bingsoo/pkg/question"
+	"github.com/jace-ys/bingsoo/pkg/redis"
+	"github.com/jace-ys/bingsoo/pkg/session"
 	"github.com/jace-ys/bingsoo/pkg/team"
 	"github.com/jace-ys/bingsoo/pkg/worker"
 )
@@ -25,24 +28,26 @@ type BingsooBotConfig struct {
 }
 
 type BingsooBot struct {
-	logger  log.Logger
-	server  *http.Server
-	worker  *worker.WorkerPool
-	team    *team.Registry
-	session *icebreaker.SessionManager
-	secret  string
-	token   string
+	logger   log.Logger
+	server   *http.Server
+	worker   *worker.WorkerPool
+	team     *team.Registry
+	question *question.Bank
+	session  *session.Manager
+	secret   string
+	token    string
 }
 
-func NewBingsooBot(logger log.Logger, team *team.Registry, session *icebreaker.SessionManager, secret, token string) *BingsooBot {
+func NewBingsooBot(logger log.Logger, postgres *postgres.Client, redis *redis.Client, secret, token string) *BingsooBot {
 	bot := &BingsooBot{
-		logger:  logger,
-		server:  &http.Server{},
-		worker:  worker.NewWorkerPool(),
-		team:    team,
-		session: session,
-		secret:  secret,
-		token:   token,
+		logger:   logger,
+		server:   &http.Server{},
+		worker:   worker.NewWorkerPool(),
+		team:     team.NewRegistry(postgres),
+		question: question.NewBank(postgres),
+		session:  session.NewManager(logger, redis),
+		secret:   secret,
+		token:    token,
 	}
 	bot.server.Handler = bot.handler()
 	return bot

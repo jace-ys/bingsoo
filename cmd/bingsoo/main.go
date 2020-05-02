@@ -10,10 +10,8 @@ import (
 	"golang.org/x/sync/errgroup"
 
 	"github.com/jace-ys/bingsoo/pkg/bingsoo"
-	"github.com/jace-ys/bingsoo/pkg/icebreaker"
 	"github.com/jace-ys/bingsoo/pkg/postgres"
 	"github.com/jace-ys/bingsoo/pkg/redis"
-	"github.com/jace-ys/bingsoo/pkg/team"
 )
 
 var logger log.Logger
@@ -33,9 +31,7 @@ func main() {
 		exit(err)
 	}
 
-	team := team.NewRegistry(postgres)
-	session := icebreaker.NewSessionManager(logger, redis)
-	bot := bingsoo.NewBingsooBot(logger, team, session, c.bot.SigningSecret, c.bot.AccessToken)
+	bot := bingsoo.NewBingsooBot(logger, postgres, redis, c.bot.SigningSecret, c.bot.AccessToken)
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()

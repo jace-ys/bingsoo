@@ -1,4 +1,4 @@
-package icebreaker
+package session
 
 import (
 	"context"
@@ -15,6 +15,7 @@ import (
 	"github.com/slack-go/slack"
 
 	"github.com/jace-ys/bingsoo/pkg/message"
+	"github.com/jace-ys/bingsoo/pkg/question"
 	"github.com/jace-ys/bingsoo/pkg/redis"
 	"github.com/jace-ys/bingsoo/pkg/team"
 )
@@ -26,48 +27,46 @@ var (
 )
 
 type Session struct {
-	ID       uuid.UUID
-	Team     *team.Team
-	Duration time.Duration
-	slack    *slack.Client
+	ID        uuid.UUID
+	Team      *team.Team
+	Questions []*question.Question
+	Duration  time.Duration
+
+	slack *slack.Client
 }
 
-type SessionManager struct {
+type Manager struct {
 	logger log.Logger
 	redis  *redis.Client
 }
 
-func NewSessionManager(logger log.Logger, redis *redis.Client) *SessionManager {
-	return &SessionManager{
+func NewManager(logger log.Logger, redis *redis.Client) *Manager {
+	return &Manager{
 		logger: logger,
 		redis:  redis,
 	}
 }
 
-func (m *SessionManager) NewSession(team *team.Team, token string) (*Session, error) {
-	id, err := uuid.NewRandom()
-	if err != nil {
-		return nil, err
-	}
-
+func (m *Manager) NewIcebreaker(team *team.Team, questions []*question.Question, token string) *Session {
 	return &Session{
-		ID:       id,
-		Team:     team,
-		Duration: time.Duration(team.SessionDurationMins) * time.Minute,
-		slack:    slack.New(token), // TODO: initialize this on the fly using Team.AccessToken
-	}, nil
+		ID:        uuid.New(),
+		Team:      team,
+		Questions: questions,
+		Duration:  time.Duration(team.SessionDurationMins) * time.Minute,
+		slack:     slack.New(token), // TODO: initialize this on the fly using Team.AccessToken
+	}
 }
 
-func (m *SessionManager) StartSession(ctx context.Context, session *Session, channelID string) error {
+func (m *Manager) StartSession(ctx context.Context, session *Session, channelID string) error {
 	level.Info(m.logger).Log("event", "session.started", "session", session.ID, "team", session.Team.TeamID, "domain", session.Team.TeamDomain)
 
-	startMessage := slack.MsgOptionBlocks(message.StartBlock(session.ID.String()).BlockSet...)
-	_, _, err := session.slack.PostMessageContext(ctx, session.Team.ChannelID, startMessage)
+	startMessage := message.StartBlock(session.ID.String(), session.Questions)
+	_, _, err := session.slack.PostMessageContext(ctx, session.Team.ChannelID, slack.MsgOptionBlocks(startMessage.BlockSet...))
 	if err != nil {
 		return fmt.Errorf("failed to start session: %w", err)
 	}
 
-	err = m.Cache(ctx, session)
+	err = m.CacheSession(ctx, session)
 	if err != nil {
 		// TODO: clean up created session
 		return fmt.Errorf("failed to cache session: %w", err)
@@ -80,21 +79,21 @@ func (m *SessionManager) StartSession(ctx context.Context, session *Session, cha
 	return nil
 }
 
-func (m *SessionManager) ValidateSession(ctx context.Context, session *Session, channelID string) error {
+func (m *Manager) ValidateSession(ctx context.Context, session *Session, channelID string) error {
 	if channelID != session.Team.ChannelID {
 		return ErrUnauthorizedChannel
 	}
 
 	// TODO: uncomment to check team has no existing session
-	// _, err := m.Retrieve(ctx, session.Team.TeamID)
-	// if err != nil {
-	// 	return nil
+	// _, err := m.RetrieveSession(ctx, session.Team.TeamID)
+	// if !errors.Is(err, ErrSessionNotFound) {
+	// 	return ErrExistingSession
 	// }
 
-	return ErrExistingSession
+	return nil
 }
 
-func (m *SessionManager) Cache(ctx context.Context, session *Session) error {
+func (m *Manager) CacheSession(ctx context.Context, session *Session) error {
 	data, err := json.Marshal(session)
 	if err != nil {
 		return err
@@ -113,9 +112,8 @@ func (m *SessionManager) Cache(ctx context.Context, session *Session) error {
 	return err
 }
 
-func (m *SessionManager) Retrieve(ctx context.Context, teamID string) (*Session, error) {
+func (m *Manager) RetrieveSession(ctx context.Context, teamID string) (session *Session, err error) {
 	var data []byte
-	var err error
 	err = m.redis.Transact(ctx, func(conn redigo.Conn) error {
 		data, err = redigo.Bytes(conn.Do("GET", teamID))
 		if err != nil {
@@ -132,11 +130,10 @@ func (m *SessionManager) Retrieve(ctx context.Context, teamID string) (*Session,
 		}
 	}
 
-	var session Session
 	err = json.Unmarshal(data, &session)
 	if err != nil {
 		return nil, fmt.Errorf("failed to retrieve session: %w", err)
 	}
 
-	return &session, nil
+	return session, nil
 }

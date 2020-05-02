@@ -9,8 +9,8 @@ import (
 	"github.com/go-kit/kit/log/level"
 	"github.com/slack-go/slack"
 
-	"github.com/jace-ys/bingsoo/pkg/icebreaker"
 	"github.com/jace-ys/bingsoo/pkg/message"
+	"github.com/jace-ys/bingsoo/pkg/session"
 	"github.com/jace-ys/bingsoo/pkg/team"
 )
 
@@ -25,26 +25,25 @@ func (bot *BingsooBot) commands(w http.ResponseWriter, r *http.Request) {
 
 	ctx := r.Context()
 
-	s, err := slack.SlashCommandParse(r)
+	sc, err := slack.SlashCommandParse(r)
 	if err != nil {
 		return
 	}
 
-	command := bot.parseCommandText(s.Text)
+	command := bot.parseCommandText(sc.Text)
 	level.Info(bot.logger).Log("event", "command.parsed", "action", command.action)
 
-	t, err := bot.team.Get(ctx, s.TeamID)
+	t, err := bot.team.Get(ctx, sc.TeamID)
 	if err != nil {
-		level.Info(bot.logger).Log("event", "team.get", "team", s.TeamID, "error", err)
+		level.Info(bot.logger).Log("event", "team.get", "team", sc.TeamID, "error", err)
 		switch {
 		case errors.Is(err, team.ErrTeamNotFound):
 			w.WriteHeader(http.StatusUnauthorized)
 			return
 		default:
-			bot.defaultError(w, s.UserID)
+			bot.defaultError(w, sc.UserID)
 			return
 		}
-		return
 	}
 
 	switch command.action {
@@ -55,39 +54,35 @@ func (bot *BingsooBot) commands(w http.ResponseWriter, r *http.Request) {
 		})
 
 	case "start":
-		session, err := bot.session.NewSession(t, bot.token)
-		if err != nil {
-			level.Info(bot.logger).Log("event", "session.created", "error", err)
-			bot.defaultError(w, s.UserID)
-			return
-		}
+		questions := bot.question.NewQuestionSet(3)
 
-		err = bot.session.ValidateSession(ctx, session, s.ChannelID)
+		icebreaker := bot.session.NewIcebreaker(t, questions, bot.token)
+		err := bot.session.ValidateSession(ctx, icebreaker, sc.ChannelID)
 		if err != nil {
 			level.Info(bot.logger).Log("event", "session.failed", "error", err)
 			switch {
-			case errors.Is(err, icebreaker.ErrUnauthorizedChannel):
+			case errors.Is(err, session.ErrUnauthorizedChannel):
 				bot.sendJSON(w, http.StatusOK, &slack.Msg{
 					ResponseType: slack.ResponseTypeEphemeral,
-					Text:         fmt.Sprintf("Hey <@%s>! Icebreaker sessions can only be started in the <#%s> channel.", s.UserID, t.ChannelID),
+					Text:         fmt.Sprintf("Hey <@%s>! Icebreaker sessions can only be started in the <#%s> channel.", sc.UserID, t.ChannelID),
 				})
 				return
-			case errors.Is(err, icebreaker.ErrExistingSession):
+			case errors.Is(err, session.ErrExistingSession):
 				bot.sendJSON(w, http.StatusOK, &slack.Msg{
 					ResponseType: slack.ResponseTypeEphemeral,
-					Text:         fmt.Sprintf("Hey <@%s>! An icebreaker session is already on-going in the <#%s> channel.", s.UserID, t.ChannelID),
+					Text:         fmt.Sprintf("Hey <@%s>! An icebreaker session is already on-going in the <#%s> channel.", sc.UserID, t.ChannelID),
 				})
 				return
 			default:
-				bot.defaultError(w, s.UserID)
+				bot.defaultError(w, sc.UserID)
 				return
 			}
 		}
 
-		err = bot.session.StartSession(ctx, session, s.ChannelID)
+		err = bot.session.StartSession(ctx, icebreaker, sc.ChannelID)
 		if err != nil {
 			level.Info(bot.logger).Log("event", "session.failed", "error", err)
-			bot.defaultError(w, s.UserID)
+			bot.defaultError(w, sc.UserID)
 			return
 		}
 
