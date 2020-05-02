@@ -79,7 +79,7 @@ func (bot *BingsooBot) commands(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 
-		err = bot.session.StartSession(ctx, icebreaker, sc.ChannelID)
+		err = bot.session.StartSession(ctx, icebreaker)
 		if err != nil {
 			level.Info(bot.logger).Log("event", "session.failed", "error", err)
 			bot.defaultError(w, sc.UserID)

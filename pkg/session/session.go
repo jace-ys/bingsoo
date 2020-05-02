@@ -52,12 +52,12 @@ func (m *Manager) NewIcebreaker(team *team.Team, questions []*question.Question,
 		ID:        uuid.New(),
 		Team:      team,
 		Questions: questions,
-		Duration:  time.Duration(team.SessionDurationMins) * time.Minute,
+		Duration:  time.Duration(team.SessionDurationMins) * time.Minute / time.Second,
 		slack:     slack.New(token), // TODO: initialize this on the fly using Team.AccessToken
 	}
 }
 
-func (m *Manager) StartSession(ctx context.Context, session *Session, channelID string) error {
+func (m *Manager) StartSession(ctx context.Context, session *Session) error {
 	level.Info(m.logger).Log("event", "session.started", "session", session.ID, "team", session.Team.TeamID, "domain", session.Team.TeamDomain)
 
 	startMessage := message.StartBlock(session.ID.String(), session.Questions)
@@ -99,10 +99,8 @@ func (m *Manager) CacheSession(ctx context.Context, session *Session) error {
 		return err
 	}
 
-	deadline := time.Duration(1) * time.Minute / time.Second
-
 	err = m.redis.Transact(ctx, func(conn redigo.Conn) error {
-		_, err := conn.Do("SET", session.Team.TeamID, string(data), "EX", strconv.Itoa(int(deadline)))
+		_, err := conn.Do("SET", session.Team.TeamID, string(data), "EX", strconv.Itoa(int(session.Duration)))
 		return err
 	})
 	if err != nil {

@@ -68,3 +68,35 @@ People will be chosen at random to answer the selected question, and I will reve
 		BlockSet: blocks,
 	}
 }
+
+func QuestionBlock(channelID string, question *question.Question) slack.Blocks {
+	var blocks []slack.Block
+
+	headerText := `
+*An icebreaker session has been started in <#%s> and you have been selected!*
+*Here's your question:* %s
+`
+	headerTextBlock := slack.NewTextBlockObject(slack.MarkdownType, fmt.Sprintf(headerText, channelID, question.Value), false, false)
+	headerSectionBlock := slack.NewSectionBlock(headerTextBlock, nil, nil)
+	blocks = append(blocks, headerSectionBlock)
+
+	return slack.Blocks{
+		BlockSet: blocks,
+	}
+}
+
+func ResultBlock(question *question.Question) slack.Blocks {
+	var blocks []slack.Block
+
+	headerText := `
+:shaved_ice: *Time's up! Revealing your teammates' responses to the icebreaker question:* :shaved_ice:
+%s
+`
+	headerTextBlock := slack.NewTextBlockObject(slack.MarkdownType, fmt.Sprintf(headerText, question.Value), false, false)
+	headerSectionBlock := slack.NewSectionBlock(headerTextBlock, nil, nil)
+	blocks = append(blocks, headerSectionBlock, slack.NewDividerBlock())
+
+	return slack.Blocks{
+		BlockSet: blocks,
+	}
+}
