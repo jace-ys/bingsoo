@@ -24,7 +24,6 @@ import (
 
 type BingsooBotConfig struct {
 	SigningSecret string
-	AccessToken   string
 }
 
 type BingsooBot struct {
@@ -35,10 +34,9 @@ type BingsooBot struct {
 	question *question.Bank
 	session  *session.Manager
 	secret   string
-	token    string
 }
 
-func NewBingsooBot(logger log.Logger, postgres *postgres.Client, redis *redis.Client, secret, token string) *BingsooBot {
+func NewBingsooBot(logger log.Logger, postgres *postgres.Client, redis *redis.Client, secret string) *BingsooBot {
 	bot := &BingsooBot{
 		logger:   logger,
 		server:   &http.Server{},
@@ -47,7 +45,6 @@ func NewBingsooBot(logger log.Logger, postgres *postgres.Client, redis *redis.Cl
 		question: question.NewBank(postgres),
 		session:  session.NewManager(logger, redis),
 		secret:   secret,
-		token:    token,
 	}
 	bot.server.Handler = bot.handler()
 	return bot

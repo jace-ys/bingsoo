@@ -35,7 +35,7 @@ Use the following commands to interact with me.
 	}
 }
 
-func StartBlock(sessionID string, questions []*question.Question) slack.Blocks {
+func VoteBlock(sessionID string, questions []*question.Question) slack.Blocks {
 	var blocks []slack.Block
 
 	headerText := `
@@ -89,7 +89,7 @@ func ResultBlock(question *question.Question) slack.Blocks {
 	var blocks []slack.Block
 
 	headerText := `
-:shaved_ice: *Time's up! Revealing your teammates' responses to the icebreaker question:* :shaved_ice:
+:drum_with_drumsticks: *It's time! :drum_with_drumsticks: Revealing your teammates' responses to the icebreaker question:*
 %s
 `
 	headerTextBlock := slack.NewTextBlockObject(slack.MarkdownType, fmt.Sprintf(headerText, question.Value), false, false)

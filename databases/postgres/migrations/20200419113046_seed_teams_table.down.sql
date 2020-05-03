@@ -1,1 +1,0 @@
-DELETE FROM teams WHERE team_id = 'TR4QJ5WBF';

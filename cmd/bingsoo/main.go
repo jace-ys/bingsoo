@@ -31,7 +31,7 @@ func main() {
 		exit(err)
 	}
 
-	bot := bingsoo.NewBingsooBot(logger, postgres, redis, c.bot.SigningSecret, c.bot.AccessToken)
+	bot := bingsoo.NewBingsooBot(logger, postgres, redis, c.bot.SigningSecret)
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
@@ -72,7 +72,6 @@ func parseCommand() *config {
 	kingpin.Flag("port", "Port for the Bingsoo server.").Default("8080").IntVar(&c.port)
 	kingpin.Flag("concurrency", "Number of concurrent workers to process tasks.").Default("4").IntVar(&c.concurrency)
 	kingpin.Flag("signing-secret", "Signing secret for verifying requests from Slack.").Required().StringVar(&c.bot.SigningSecret)
-	kingpin.Flag("access-token", "Bot user access token for authenticating with the Slack API.").Required().StringVar(&c.bot.AccessToken)
 	kingpin.Flag("postgres-host", "Host for connecting to Postgres").Default("127.0.0.1:5432").StringVar(&c.database.Host)
 	kingpin.Flag("postgres-user", "User for connecting to Postgres").Default("postgres").StringVar(&c.database.User)
 	kingpin.Flag("postgres-password", "Password for connecting to Postgres").Required().StringVar(&c.database.Password)

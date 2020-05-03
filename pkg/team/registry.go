@@ -24,6 +24,7 @@ type Team struct {
 	AccessToken         string
 	ChannelID           string
 	SessionDurationMins int
+	ParticipantQuota    int
 }
 
 type Registry struct {
@@ -40,7 +41,7 @@ func (r *Registry) Get(ctx context.Context, teamID string) (*Team, error) {
 	var team Team
 	err := r.database.Transact(ctx, func(tx *sqlx.Tx) error {
 		query := `
-		SELECT t.id, t.created_at, t.team_id, t.team_domain, t.access_token, t.channel_id, t.session_duration_mins
+		SELECT t.id, t.created_at, t.team_id, t.team_domain, t.access_token, t.channel_id, t.session_duration_mins, t.participant_quota
 		FROM teams AS t
 		WHERE t.team_id=$1
 		`

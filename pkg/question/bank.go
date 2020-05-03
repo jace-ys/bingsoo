@@ -2,7 +2,6 @@ package question
 
 import (
 	"math/rand"
-	"time"
 
 	"github.com/jace-ys/bingsoo/pkg/postgres"
 )
@@ -36,7 +35,6 @@ func NewBank(database *postgres.Client) *Bank {
 }
 
 func (b *Bank) NewQuestionSet(num int) []*Question {
-	rand.Seed(time.Now().Unix())
 	questions := make([]*Question, num)
 	for i := 0; i < num; i++ {
 		questions[i] = b.questions[rand.Intn(len(b.questions))]

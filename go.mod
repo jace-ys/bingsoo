@@ -4,6 +4,7 @@ go 1.14
 
 require (
 	github.com/alecthomas/kingpin v2.2.6+incompatible
+	github.com/davecgh/go-spew v1.1.1
 	github.com/go-kit/kit v0.10.0
 	github.com/gomodule/redigo v2.0.0+incompatible
 	github.com/google/uuid v1.0.0

@@ -18,7 +18,6 @@ jobs:
             ${{ runner.os }}-bingsoo
       - name: Setup environment
         run: |
-          echo "SLACK_ACCESS_TOKEN=" >> .env
           echo "SLACK_SIGNING_SECRET=" >> .env
       - name: Install dependencies
         run: go mod download

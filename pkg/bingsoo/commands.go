@@ -3,8 +3,10 @@ package bingsoo
 import (
 	"errors"
 	"fmt"
+	"math/rand"
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/go-kit/kit/log/level"
 	"github.com/slack-go/slack"
@@ -54,10 +56,12 @@ func (bot *BingsooBot) commands(w http.ResponseWriter, r *http.Request) {
 		})
 
 	case "start":
-		questions := bot.question.NewQuestionSet(3)
+		rand.Seed(time.Now().Unix())
 
-		icebreaker := bot.session.NewIcebreaker(t, questions, bot.token)
-		err := bot.session.ValidateSession(ctx, icebreaker, sc.ChannelID)
+		questions := bot.question.NewQuestionSet(3)
+		icebreaker := bot.session.NewIcebreaker(t, questions)
+
+		err := bot.session.StartSession(ctx, icebreaker, sc.ChannelID)
 		if err != nil {
 			level.Info(bot.logger).Log("event", "session.failed", "error", err)
 			switch {
@@ -77,13 +81,6 @@ func (bot *BingsooBot) commands(w http.ResponseWriter, r *http.Request) {
 				bot.defaultError(w, sc.UserID)
 				return
 			}
-		}
-
-		err = bot.session.StartSession(ctx, icebreaker)
-		if err != nil {
-			level.Info(bot.logger).Log("event", "session.failed", "error", err)
-			bot.defaultError(w, sc.UserID)
-			return
 		}
 
 		w.WriteHeader(http.StatusOK)

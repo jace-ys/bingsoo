@@ -18,7 +18,6 @@ run:
 		--port 8080 \
 		--concurrency 4 \
 		--signing-secret ${SIGNING_SECRET} \
-		--access-token ${ACCESS_TOKEN} \
 		--postgres-host 127.0.0.1:5432 \
 		--postgres-user bingsoo \
 		--postgres-password bingsoo \
