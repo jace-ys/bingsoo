@@ -8,7 +8,6 @@ import (
 	"time"
 
 	"github.com/go-kit/kit/log"
-	"github.com/go-kit/kit/log/level"
 	redigo "github.com/gomodule/redigo/redis"
 	"github.com/google/uuid"
 	"github.com/slack-go/slack"
@@ -70,19 +69,22 @@ func (m *Manager) NewIcebreaker(team *team.Team, questions []*question.Question)
 
 type ManageSessionFunc func(ctx context.Context, logger log.Logger, session *Session) (*Session, error)
 
-func (m *Manager) ManageSession(ctx context.Context, logger log.Logger, session *Session, existing bool, manage ManageSessionFunc) {
+func (m *Manager) ManageSession(logger log.Logger, session *Session, existing bool, manage ManageSessionFunc) {
 	var err error
 	defer func() {
 		if err != nil {
 			// TODO: clean up session in the face of error
-			level.Info(logger).Log("event", "session.cleanup")
+			logger.Log("event", "session.cleanup")
 		}
 	}()
+
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
 
 	if existing {
 		session, err = m.retrieveSession(ctx, session.Team.TeamID)
 		if err != nil {
-			level.Error(logger).Log("event", "session.failed", "error", err)
+			logger.Log("event", "session.failed", "error", err)
 			return
 		}
 	}
@@ -90,13 +92,13 @@ func (m *Manager) ManageSession(ctx context.Context, logger log.Logger, session 
 	session.slack = slack.New(session.Team.AccessToken)
 	session, err = manage(ctx, logger, session)
 	if err != nil {
-		level.Error(logger).Log("event", "session.failed", "error", err)
+		logger.Log("event", "session.failed", "error", err)
 		return
 	}
 
 	err = m.cacheSession(ctx, session)
 	if err != nil {
-		level.Error(logger).Log("event", "session.failed", "error", err)
+		logger.Log("event", "session.failed", "error", err)
 		return
 	}
 }
@@ -107,6 +109,7 @@ func (m *Manager) cacheSession(ctx context.Context, session *Session) error {
 		return err
 	}
 
+	// TODO: cache for duration of phase
 	ttl := int(session.Duration / time.Second)
 	err = m.redis.Transact(ctx, func(conn redigo.Conn) error {
 		_, err := conn.Do("SET", session.Team.TeamID, string(data), "EX", strconv.Itoa(ttl))

@@ -6,12 +6,11 @@ import (
 	"time"
 
 	"github.com/go-kit/kit/log"
-	"github.com/go-kit/kit/log/level"
 )
 
 func (m *Manager) StartSession(ctx context.Context, session *Session, channelID string) error {
 	logger := log.With(m.logger, "session", session.ID, "team", session.Team.TeamID, "domain", session.Team.TeamDomain)
-	level.Info(logger).Log("event", "session.started")
+	logger.Log("event", "session.started")
 
 	err := m.validateSession(ctx, session, channelID)
 	if err != nil {
@@ -21,15 +20,15 @@ func (m *Manager) StartSession(ctx context.Context, session *Session, channelID 
 	votePhase := session.Duration / 2
 	answerPhase := session.Duration
 
-	m.ManageSession(ctx, logger, session, false, m.startVotePhase())
+	m.ManageSession(logger, session, false, m.startVotePhase())
 
 	time.AfterFunc(votePhase, func() {
-		m.ManageSession(ctx, logger, session, true, m.startAnswerPhase())
+		m.ManageSession(logger, session, true, m.startAnswerPhase())
 	})
 
 	time.AfterFunc(answerPhase, func() {
-		m.ManageSession(ctx, logger, session, true, m.startResultsPhase())
-		level.Info(m.logger).Log("event", "session.finished")
+		m.ManageSession(logger, session, true, m.startResultsPhase())
+		m.logger.Log("event", "session.finished")
 	})
 
 	return nil

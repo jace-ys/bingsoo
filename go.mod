@@ -12,6 +12,6 @@ require (
 	github.com/jmoiron/sqlx v1.2.0
 	github.com/lib/pq v1.3.0
 	github.com/prometheus/client_golang v1.3.0
-	github.com/slack-go/slack v0.6.3
+	github.com/slack-go/slack v0.6.4
 	golang.org/x/sync v0.0.0-20190911185100-cd5d95a43a6e
 )

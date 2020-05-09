@@ -6,7 +6,6 @@ import (
 
 	"github.com/alecthomas/kingpin"
 	"github.com/go-kit/kit/log"
-	"github.com/go-kit/kit/log/level"
 	"golang.org/x/sync/errgroup"
 
 	"github.com/jace-ys/bingsoo/pkg/bingsoo"
@@ -83,6 +82,6 @@ func parseCommand() *config {
 }
 
 func exit(err error) {
-	level.Error(logger).Log("event", "app.fatal", "error", err)
+	logger.Log("event", "app.fatal", "error", err)
 	os.Exit(1)
 }

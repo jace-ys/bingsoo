@@ -9,7 +9,6 @@ import (
 	"net/http"
 
 	"github.com/go-kit/kit/log"
-	"github.com/go-kit/kit/log/level"
 	"github.com/gorilla/mux"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/slack-go/slack"
@@ -51,8 +50,8 @@ func NewBingsooBot(logger log.Logger, postgres *postgres.Client, redis *redis.Cl
 }
 
 func (bot *BingsooBot) StartServer(port int) error {
-	level.Info(bot.logger).Log("event", "server.started", "port", port)
-	defer level.Info(bot.logger).Log("event", "server.stopped")
+	bot.logger.Log("event", "server.started", "port", port)
+	defer bot.logger.Log("event", "server.stopped")
 	bot.server.Addr = fmt.Sprintf(":%d", port)
 	if err := bot.server.ListenAndServe(); err != nil {
 		return fmt.Errorf("failed to start server: %w", err)
@@ -61,8 +60,8 @@ func (bot *BingsooBot) StartServer(port int) error {
 }
 
 func (bot *BingsooBot) StartWorkers(ctx context.Context, concurrency int) error {
-	level.Info(bot.logger).Log("event", "workers.started", "concurrency", concurrency)
-	defer level.Info(bot.logger).Log("event", "workers.stopped")
+	bot.logger.Log("event", "workers.started", "concurrency", concurrency)
+	defer bot.logger.Log("event", "workers.stopped")
 	if err := bot.worker.Process(ctx, concurrency); err != nil {
 		return fmt.Errorf("failed to start workers: %w", err)
 	}
@@ -95,7 +94,7 @@ func (bot *BingsooBot) verifySignatureMiddleware(next http.Handler) http.Handler
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		err := bot.verifySignature(r)
 		if err != nil {
-			level.Error(bot.logger).Log("event", "signature.verified", "error", err)
+			bot.logger.Log("event", "signature.verified", "error", err)
 			w.WriteHeader(http.StatusUnauthorized)
 			return
 		}
@@ -126,7 +125,7 @@ func (bot *BingsooBot) verifySignature(r *http.Request) error {
 func (bot *BingsooBot) sendJSON(w http.ResponseWriter, code int, res interface{}) {
 	response, err := json.Marshal(res)
 	if err != nil {
-		level.Error(bot.logger).Log("event", "response.encoded", "error", err)
+		bot.logger.Log("event", "response.encoded", "error", err)
 		w.WriteHeader(http.StatusInternalServerError)
 		w.Write([]byte("Bingsoo is currently unavailable. Please try again later."))
 		return

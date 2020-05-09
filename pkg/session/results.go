@@ -2,10 +2,9 @@ package session
 
 import (
 	"context"
+	"fmt"
 
-	"github.com/davecgh/go-spew/spew"
 	"github.com/go-kit/kit/log"
-	"github.com/go-kit/kit/log/level"
 	"github.com/slack-go/slack"
 
 	"github.com/jace-ys/bingsoo/pkg/message"
@@ -13,27 +12,26 @@ import (
 
 func (m *Manager) startResultsPhase() ManageSessionFunc {
 	return func(ctx context.Context, logger log.Logger, session *Session) (*Session, error) {
-		level.Info(logger).Log("event", "phase.started", "phase", "results")
+		logger.Log("event", "phase.started", "phase", "results")
 
 		if session.CurrentPhase != PhaseAnswer {
-			return session, ErrUnexpectedPhase
+			return session, fmt.Errorf("%s: %v", ErrUnexpectedPhase, session.CurrentPhase)
 		}
 		session.CurrentPhase = PhaseResult
 
-		err := m.releaseResults(session)
+		err := m.releaseResults(ctx, session)
 		if err != nil {
-			level.Error(logger).Log("event", "session.failed", "error", err)
 			return session, err
 		}
 
-		spew.Dump(session)
+		// spew.Dump(session)
 		return session, nil
 	}
 }
 
-func (m *Manager) releaseResults(session *Session) error {
+func (m *Manager) releaseResults(ctx context.Context, session *Session) error {
 	resultMessage := message.ResultBlock(session.Questions[0])
-	_, _, err := session.slack.PostMessage(session.Team.ChannelID, slack.MsgOptionBlocks(resultMessage.BlockSet...))
+	_, _, err := session.slack.PostMessageContext(ctx, session.Team.ChannelID, slack.MsgOptionBlocks(resultMessage.BlockSet...))
 	if err != nil {
 		return err
 	}

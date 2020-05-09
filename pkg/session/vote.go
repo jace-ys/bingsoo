@@ -4,9 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/davecgh/go-spew/spew"
 	"github.com/go-kit/kit/log"
-	"github.com/go-kit/kit/log/level"
 	"github.com/slack-go/slack"
 
 	"github.com/jace-ys/bingsoo/pkg/message"
@@ -14,10 +12,10 @@ import (
 
 func (m *Manager) startVotePhase() ManageSessionFunc {
 	return func(ctx context.Context, logger log.Logger, session *Session) (*Session, error) {
-		level.Info(logger).Log("event", "phase.started", "phase", "vote")
+		logger.Log("event", "phase.started", "phase", "vote")
 
 		if session.CurrentPhase != PhaseNone {
-			return session, ErrUnexpectedPhase
+			return session, fmt.Errorf("%s: %v", ErrUnexpectedPhase, session.CurrentPhase)
 		}
 		session.CurrentPhase = PhaseVote
 
@@ -27,7 +25,7 @@ func (m *Manager) startVotePhase() ManageSessionFunc {
 			return session, fmt.Errorf("failed to post start message: %w", err)
 		}
 
-		spew.Dump(session)
+		// spew.Dump(session)
 		return session, nil
 	}
 }
