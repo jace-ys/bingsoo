@@ -74,7 +74,8 @@ func QuestionBlock(channelID string, question *question.Question) slack.Blocks {
 
 	headerText := `
 *An icebreaker session has been started in <#%s> and you have been selected!*
-*Here's your question:* %s
+*Here's your question:*
+%s
 `
 	headerTextBlock := slack.NewTextBlockObject(slack.MarkdownType, fmt.Sprintf(headerText, channelID, question.Value), false, false)
 	headerSectionBlock := slack.NewSectionBlock(headerTextBlock, nil, nil)

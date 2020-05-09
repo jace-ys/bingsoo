@@ -24,27 +24,6 @@ var (
 	ErrUnexpectedPhase     = errors.New("session found in unexpected phase")
 )
 
-type Phase int
-
-const (
-	PhaseNone Phase = iota
-	PhaseVote
-	PhaseAnswer
-	PhaseResult
-)
-
-type Session struct {
-	ID           uuid.UUID
-	Team         *team.Team
-	Questions    []*question.Question
-	Participants map[string]string
-
-	Duration     time.Duration
-	CurrentPhase Phase
-
-	slack *slack.Client
-}
-
 type Manager struct {
 	logger log.Logger
 	redis  *redis.Client
@@ -59,11 +38,11 @@ func NewManager(logger log.Logger, redis *redis.Client) *Manager {
 
 func (m *Manager) NewIcebreaker(team *team.Team, questions []*question.Question) *Session {
 	return &Session{
-		ID:           uuid.New(),
-		Team:         team,
-		Questions:    questions,
-		CurrentPhase: PhaseNone,
-		Duration:     time.Duration(team.SessionDurationMins) * time.Minute,
+		ID:            uuid.New(),
+		Team:          team,
+		QuestionsList: questions,
+		CurrentPhase:  PhaseNone,
+		Duration:      time.Duration(team.SessionDurationMins) * time.Minute,
 	}
 }
 

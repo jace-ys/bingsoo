@@ -19,7 +19,7 @@ func (m *Manager) startVotePhase() ManageSessionFunc {
 		}
 		session.CurrentPhase = PhaseVote
 
-		voteMessage := message.VoteBlock(session.ID.String(), session.Questions)
+		voteMessage := message.VoteBlock(session.ID.String(), session.QuestionsList)
 		_, _, err := session.slack.PostMessageContext(ctx, session.Team.ChannelID, slack.MsgOptionBlocks(voteMessage.BlockSet...))
 		if err != nil {
 			return session, fmt.Errorf("failed to post start message: %w", err)

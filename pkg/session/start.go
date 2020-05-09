@@ -9,7 +9,7 @@ import (
 )
 
 func (m *Manager) StartSession(ctx context.Context, session *Session, channelID string) error {
-	logger := log.With(m.logger, "session", session.ID, "team", session.Team.TeamID, "domain", session.Team.TeamDomain)
+	logger := log.With(m.logger, "session", session.ID, "team", session.Team.TeamID, "channel", session.Team.ChannelID)
 	logger.Log("event", "session.started")
 
 	err := m.validateSession(ctx, session, channelID)

@@ -9,6 +9,7 @@ import (
 	"github.com/slack-go/slack"
 
 	"github.com/jace-ys/bingsoo/pkg/message"
+	"github.com/jace-ys/bingsoo/pkg/question"
 )
 
 func (m *Manager) startAnswerPhase() ManageSessionFunc {
@@ -24,9 +25,9 @@ func (m *Manager) startAnswerPhase() ManageSessionFunc {
 		if err != nil {
 			return session, err
 		}
-		session.Participants = participants
 
-		// session.ChosenQuestion = m.selectQuestion(session)
+		session.Participants = participants
+		session.SelectedQuestion = m.selectQuestion(session)
 
 		err = m.deliverQuestion(ctx, session)
 		if err != nil {
@@ -60,6 +61,11 @@ func (m *Manager) selectParticipants(ctx context.Context, session *Session) (map
 	return participants, nil
 }
 
+func (m *Manager) selectQuestion(session *Session) *question.Question {
+	questions := session.QuestionsList
+	return questions[rand.Intn(len(questions))]
+}
+
 func (m *Manager) deliverQuestion(ctx context.Context, session *Session) error {
 	for user := range session.Participants {
 		params := &slack.OpenConversationParameters{Users: []string{user}}
@@ -68,7 +74,7 @@ func (m *Manager) deliverQuestion(ctx context.Context, session *Session) error {
 			return err
 		}
 
-		questionMessage := message.QuestionBlock(session.Team.ChannelID, session.Questions[0])
+		questionMessage := message.QuestionBlock(session.Team.ChannelID, session.SelectedQuestion)
 		_, _, err = session.slack.PostMessageContext(ctx, channel.ID, slack.MsgOptionBlocks(questionMessage.BlockSet...))
 		if err != nil {
 			return err

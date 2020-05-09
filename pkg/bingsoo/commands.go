@@ -32,7 +32,7 @@ func (bot *BingsooBot) commands(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	logger := log.With(bot.logger, "team", sc.TeamID, "domain", sc.TeamDomain, "user", sc.UserID, "channel", sc.ChannelID)
+	logger := log.With(bot.logger, "team", sc.TeamID, "user", sc.UserID, "channel", sc.ChannelID)
 
 	command := bot.parseCommandText(sc.Text)
 	logger.Log("event", "command.parsed", "action", command.action)
