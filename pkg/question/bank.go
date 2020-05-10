@@ -35,9 +35,20 @@ func NewBank(database *postgres.Client) *Bank {
 }
 
 func (b *Bank) NewQuestionSet(num int) []*Question {
-	questions := make([]*Question, num)
-	for i := 0; i < num; i++ {
-		questions[i] = b.questions[rand.Intn(len(b.questions))]
+	if len(b.questions) < num {
+		num = len(b.questions)
 	}
+
+	unique := make(map[*Question]struct{})
+	for len(unique) < num {
+		question := b.questions[rand.Intn(len(b.questions))]
+		unique[question] = struct{}{}
+	}
+
+	var questions []*Question
+	for question := range unique {
+		questions = append(questions, question)
+	}
+
 	return questions
 }

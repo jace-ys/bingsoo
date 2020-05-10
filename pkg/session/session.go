@@ -26,8 +26,23 @@ type Session struct {
 	SelectedQuestion *question.Question
 	Participants     map[string]string
 
-	Duration     time.Duration
-	CurrentPhase Phase
+	CurrentPhase        Phase
+	VotePhaseDeadline   time.Duration
+	AnswerPhaseDeadline time.Duration
+	ExpiresAt           time.Time
 
 	slack *slack.Client
+}
+
+func (m *Manager) NewIcebreaker(team *team.Team, questions []*question.Question) *Session {
+	duration := time.Duration(team.SessionDurationMins) * time.Minute
+	return &Session{
+		ID:                  uuid.New(),
+		Team:                team,
+		QuestionsList:       questions,
+		CurrentPhase:        PhaseNone,
+		VotePhaseDeadline:   duration / 2,
+		AnswerPhaseDeadline: duration,
+		ExpiresAt:           time.Now().Add(duration).Add(5 * time.Second),
+	}
 }

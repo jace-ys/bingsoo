@@ -17,18 +17,19 @@ func (m *Manager) StartSession(ctx context.Context, session *Session, channelID 
 		return err
 	}
 
-	votePhase := session.Duration / 2
-	answerPhase := session.Duration
-
 	m.ManageSession(logger, session, false, m.startVotePhase())
 
-	time.AfterFunc(votePhase, func() {
+	time.AfterFunc(session.VotePhaseDeadline, func() {
 		m.ManageSession(logger, session, true, m.startAnswerPhase())
 	})
 
-	time.AfterFunc(answerPhase, func() {
+	time.AfterFunc(session.AnswerPhaseDeadline, func() {
+		defer func() {
+			m.logger.Log("event", "session.finished")
+			// TODO: save session data
+		}()
+
 		m.ManageSession(logger, session, true, m.startResultsPhase())
-		m.logger.Log("event", "session.finished")
 	})
 
 	return nil

@@ -9,12 +9,9 @@ import (
 
 	"github.com/go-kit/kit/log"
 	redigo "github.com/gomodule/redigo/redis"
-	"github.com/google/uuid"
 	"github.com/slack-go/slack"
 
-	"github.com/jace-ys/bingsoo/pkg/question"
 	"github.com/jace-ys/bingsoo/pkg/redis"
-	"github.com/jace-ys/bingsoo/pkg/team"
 )
 
 var (
@@ -33,16 +30,6 @@ func NewManager(logger log.Logger, redis *redis.Client) *Manager {
 	return &Manager{
 		logger: logger,
 		redis:  redis,
-	}
-}
-
-func (m *Manager) NewIcebreaker(team *team.Team, questions []*question.Question) *Session {
-	return &Session{
-		ID:            uuid.New(),
-		Team:          team,
-		QuestionsList: questions,
-		CurrentPhase:  PhaseNone,
-		Duration:      time.Duration(team.SessionDurationMins) * time.Minute,
 	}
 }
 
@@ -88,10 +75,9 @@ func (m *Manager) cacheSession(ctx context.Context, session *Session) error {
 		return err
 	}
 
-	// TODO: cache for duration of phase
-	ttl := int(session.Duration / time.Second)
+	ttl := session.ExpiresAt.Sub(time.Now()) / time.Second
 	err = m.redis.Transact(ctx, func(conn redigo.Conn) error {
-		_, err := conn.Do("SET", session.Team.TeamID, string(data), "EX", strconv.Itoa(ttl))
+		_, err := conn.Do("SET", session.Team.TeamID, string(data), "EX", strconv.Itoa(int(ttl)))
 		return err
 	})
 	if err != nil {

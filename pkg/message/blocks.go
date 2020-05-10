@@ -73,7 +73,7 @@ func QuestionBlock(channelID string, question *question.Question) slack.Blocks {
 	var blocks []slack.Block
 
 	headerText := `
-*An icebreaker session has been started in <#%s> and you have been selected!*
+*An icebreaker session has been started in <#%s> and you have been selected! :shaved_ice:*
 *Here's your question:*
 %s
 `
