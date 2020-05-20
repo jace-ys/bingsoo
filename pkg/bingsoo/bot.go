@@ -87,6 +87,10 @@ func (bot *BingsooBot) handler() http.Handler {
 	v1commands.HandleFunc("", bot.commands).Methods(http.MethodPost)
 	v1commands.Use(bot.verifySignatureMiddleware)
 
+	v1interactions := v1.PathPrefix("/interactions").Subrouter()
+	v1interactions.HandleFunc("", bot.interactions).Methods(http.MethodPost)
+	v1interactions.Use(bot.verifySignatureMiddleware)
+
 	return router
 }
 

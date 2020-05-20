@@ -74,7 +74,7 @@ func (m *Manager) deliverQuestion(ctx context.Context, session *Session) error {
 			return err
 		}
 
-		questionMessage := message.QuestionBlock(session.Team.ChannelID, session.SelectedQuestion)
+		questionMessage := message.QuestionBlock(session.ID.String(), session.Team.ChannelID)
 		_, _, err = session.slack.PostMessageContext(ctx, channel.ID, slack.MsgOptionBlocks(questionMessage.BlockSet...))
 		if err != nil {
 			return err
@@ -82,4 +82,21 @@ func (m *Manager) deliverQuestion(ctx context.Context, session *Session) error {
 	}
 
 	return nil
+}
+
+func (m *Manager) OpenAnswerModal(triggerID string) ManageSessionFunc {
+	return func(ctx context.Context, logger log.Logger, session *Session) (*Session, error) {
+		_, err := session.slack.OpenViewContext(ctx, triggerID, message.AnswerModal(session.ID.String(), session.SelectedQuestion))
+		if err != nil {
+			return nil, err
+		}
+
+		return session, nil
+	}
+}
+
+func (m *Manager) HandleAnswerResponse() ManageSessionFunc {
+	return func(ctx context.Context, logger log.Logger, session *Session) (*Session, error) {
+		return nil, nil
+	}
 }

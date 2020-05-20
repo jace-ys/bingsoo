@@ -5,6 +5,7 @@ import (
 
 	"github.com/slack-go/slack"
 
+	"github.com/jace-ys/bingsoo/pkg/interactions"
 	"github.com/jace-ys/bingsoo/pkg/question"
 )
 
@@ -30,9 +31,7 @@ Use the following commands to interact with me.
 	startSectionBlock := slack.NewSectionBlock(startTextBlock, nil, nil)
 	blocks = append(blocks, startSectionBlock)
 
-	return slack.Blocks{
-		BlockSet: blocks,
-	}
+	return slack.Blocks{blocks}
 }
 
 func VoteBlock(sessionID string, questions []*question.Question) slack.Blocks {
@@ -49,7 +48,7 @@ People will be chosen at random to answer the selected question, and I will reve
 
 	for _, question := range questions {
 		voteButtonTextBlock := slack.NewTextBlockObject(slack.PlainTextType, "Vote", false, false)
-		voteButtonBlockElement := slack.NewButtonBlockElement(fmt.Sprintf("%s/vote/%d", sessionID, question.ID), question.Value, voteButtonTextBlock)
+		voteButtonBlockElement := slack.NewButtonBlockElement(fmt.Sprintf("%s/vote/submit", sessionID), question.Value, voteButtonTextBlock)
 		voteButtonBlockElement.WithStyle(slack.StylePrimary)
 
 		questionTextBlock := slack.NewTextBlockObject(slack.MarkdownType, question.Value, false, false)
@@ -59,31 +58,33 @@ People will be chosen at random to answer the selected question, and I will reve
 	blocks = append(blocks, slack.NewDividerBlock())
 
 	suggestButtonTextBlock := slack.NewTextBlockObject(slack.PlainTextType, "Suggest a question", false, false)
-	suggestButtonBlockElement := slack.NewButtonBlockElement(fmt.Sprintf("%s/suggest", sessionID), "suggest", suggestButtonTextBlock)
+	suggestButtonBlockElement := slack.NewButtonBlockElement(fmt.Sprintf("%s/suggest/submit", sessionID), "", suggestButtonTextBlock)
 	suggestButtonBlockElement.WithStyle(slack.StylePrimary)
-	suggestButtonActionBlock := slack.NewActionBlock("", suggestButtonBlockElement)
+	suggestButtonActionBlock := slack.NewActionBlock("suggest/submit", suggestButtonBlockElement)
 	blocks = append(blocks, suggestButtonActionBlock)
 
-	return slack.Blocks{
-		BlockSet: blocks,
-	}
+	return slack.Blocks{blocks}
 }
 
-func QuestionBlock(channelID string, question *question.Question) slack.Blocks {
+func QuestionBlock(sessionID, channelID string) slack.Blocks {
 	var blocks []slack.Block
 
 	headerText := `
 *An icebreaker session has been started in <#%s> and you have been selected! :shaved_ice:*
-*Here's your question:*
-%s
+Answer the following question to participate.
 `
-	headerTextBlock := slack.NewTextBlockObject(slack.MarkdownType, fmt.Sprintf(headerText, channelID, question.Value), false, false)
+	headerTextBlock := slack.NewTextBlockObject(slack.MarkdownType, fmt.Sprintf(headerText, channelID), false, false)
 	headerSectionBlock := slack.NewSectionBlock(headerTextBlock, nil, nil)
 	blocks = append(blocks, headerSectionBlock)
 
-	return slack.Blocks{
-		BlockSet: blocks,
-	}
+	answerButtonBlockID := interactions.ActionQuestionView
+	answerButtonTextBlock := slack.NewTextBlockObject(slack.PlainTextType, "Answer question", false, false)
+	answerButtonBlockElement := slack.NewButtonBlockElement(fmt.Sprintf("%s/%s", sessionID, answerButtonBlockID), "", answerButtonTextBlock)
+	answerButtonBlockElement.WithStyle(slack.StylePrimary)
+	answerButtonActionBlock := slack.NewActionBlock(answerButtonBlockID, answerButtonBlockElement)
+	blocks = append(blocks, answerButtonActionBlock)
+
+	return slack.Blocks{blocks}
 }
 
 func ResultBlock(question *question.Question) slack.Blocks {
@@ -97,7 +98,5 @@ func ResultBlock(question *question.Question) slack.Blocks {
 	headerSectionBlock := slack.NewSectionBlock(headerTextBlock, nil, nil)
 	blocks = append(blocks, headerSectionBlock, slack.NewDividerBlock())
 
-	return slack.Blocks{
-		BlockSet: blocks,
-	}
+	return slack.Blocks{blocks}
 }

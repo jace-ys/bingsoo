@@ -9,13 +9,13 @@ import (
 )
 
 func (m *Manager) StartSession(ctx context.Context, session *Session, channelID string) error {
-	logger := log.With(m.logger, "session", session.ID, "team", session.Team.TeamID, "channel", session.Team.ChannelID)
-	logger.Log("event", "session.started")
-
 	err := m.validateSession(ctx, session, channelID)
 	if err != nil {
 		return err
 	}
+
+	logger := log.With(m.logger, "session", session.ID, "team", session.Team.TeamID, "channel", session.Team.ChannelID)
+	logger.Log("event", "session.started")
 
 	m.ManageSession(logger, session, false, m.startVotePhase())
 

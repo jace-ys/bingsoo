@@ -48,11 +48,18 @@ func (m *Manager) ManageSession(logger log.Logger, session *Session, existing bo
 	defer cancel()
 
 	if existing {
-		session, err = m.retrieveSession(ctx, session.Team.TeamID)
+		retrieved, err := m.retrieveSession(ctx, session.Team.TeamID)
 		if err != nil {
 			logger.Log("event", "session.failed", "error", err)
 			return
 		}
+
+		if retrieved.ID != session.ID {
+			logger.Log("event", "session.failed", "error", ErrSessionNotFound)
+			return
+		}
+
+		session = retrieved
 	}
 
 	session.slack = slack.New(session.Team.AccessToken)
