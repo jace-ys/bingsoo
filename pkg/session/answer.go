@@ -13,17 +13,17 @@ import (
 )
 
 func (m *Manager) startAnswerPhase() ManageSessionFunc {
-	return func(ctx context.Context, logger log.Logger, session *Session) (*Session, error) {
+	return func(ctx context.Context, logger log.Logger, session *Session) error {
 		logger.Log("event", "phase.started", "phase", "answer")
 
 		if session.CurrentPhase != PhaseVote {
-			return session, fmt.Errorf("%s: %v", ErrUnexpectedPhase, session.CurrentPhase)
+			return fmt.Errorf("%s: %v", ErrUnexpectedPhase, session.CurrentPhase)
 		}
 		session.CurrentPhase = PhaseAnswer
 
 		participants, err := m.selectParticipants(ctx, session)
 		if err != nil {
-			return session, err
+			return err
 		}
 
 		session.Participants = participants
@@ -31,11 +31,10 @@ func (m *Manager) startAnswerPhase() ManageSessionFunc {
 
 		err = m.deliverQuestion(ctx, session)
 		if err != nil {
-			return session, err
+			return err
 		}
 
-		// spew.Dump(session)
-		return session, nil
+		return nil
 	}
 }
 
@@ -84,19 +83,23 @@ func (m *Manager) deliverQuestion(ctx context.Context, session *Session) error {
 	return nil
 }
 
-func (m *Manager) OpenAnswerModal(triggerID string) ManageSessionFunc {
-	return func(ctx context.Context, logger log.Logger, session *Session) (*Session, error) {
+func (m *Manager) openQuestionModal(triggerID string) ManageSessionFunc {
+	return func(ctx context.Context, logger log.Logger, session *Session) error {
+		logger.Log("event", "modal.opened", "type", "question")
+
 		_, err := session.slack.OpenViewContext(ctx, triggerID, message.AnswerModal(session.ID.String(), session.SelectedQuestion))
 		if err != nil {
-			return nil, err
+			return err
 		}
 
-		return session, nil
+		return nil
 	}
 }
 
-func (m *Manager) HandleAnswerResponse() ManageSessionFunc {
-	return func(ctx context.Context, logger log.Logger, session *Session) (*Session, error) {
-		return nil, nil
+func (m *Manager) handleAnswerInput() ManageSessionFunc {
+	return func(ctx context.Context, logger log.Logger, session *Session) error {
+		logger.Log("event", "input.handled", "type", "answer")
+
+		return nil
 	}
 }

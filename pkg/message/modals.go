@@ -5,14 +5,14 @@ import (
 
 	"github.com/slack-go/slack"
 
-	"github.com/jace-ys/bingsoo/pkg/interactions"
+	"github.com/jace-ys/bingsoo/pkg/interaction"
 	"github.com/jace-ys/bingsoo/pkg/question"
 )
 
 func AnswerModal(sessionID string, question *question.Question) slack.ModalViewRequest {
 	var blocks []slack.Block
 
-	answerInputBlockID := interactions.ResponseAnswerSubmit
+	answerInputBlockID := interaction.ResponseAnswerSubmit
 	answerLabelTextBlock := slack.NewTextBlockObject(slack.PlainTextType, question.Value, false, false)
 	answerPlaceholderTextBlock := slack.NewTextBlockObject(slack.PlainTextType, "Enter your answer here", false, false)
 	answerInputBlockElement := slack.NewPlainTextInputBlockElement(answerPlaceholderTextBlock, fmt.Sprintf("%s/%s", sessionID, answerInputBlockID))

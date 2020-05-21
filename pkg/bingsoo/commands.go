@@ -61,9 +61,8 @@ func (bot *BingsooBot) commands(w http.ResponseWriter, r *http.Request) {
 		rand.Seed(time.Now().Unix())
 
 		questions := bot.question.NewQuestionSet(3)
-		icebreaker := bot.session.NewIcebreaker(t, questions)
 
-		err := bot.session.StartSession(ctx, icebreaker, sc.ChannelID)
+		icebreaker, err := bot.session.NewIcebreaker(ctx, t, questions, sc.ChannelID)
 		if err != nil {
 			logger.Log("event", "session.failed", "error", err)
 			switch {
@@ -83,6 +82,13 @@ func (bot *BingsooBot) commands(w http.ResponseWriter, r *http.Request) {
 				bot.defaultError(w, sc.UserID)
 				return
 			}
+		}
+
+		err = bot.session.StartSession(ctx, icebreaker)
+		if err != nil {
+			logger.Log("event", "session.failed", "error", err)
+			bot.defaultError(w, sc.UserID)
+			return
 		}
 
 		w.WriteHeader(http.StatusOK)

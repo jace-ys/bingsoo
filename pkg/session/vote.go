@@ -11,21 +11,20 @@ import (
 )
 
 func (m *Manager) startVotePhase() ManageSessionFunc {
-	return func(ctx context.Context, logger log.Logger, session *Session) (*Session, error) {
+	return func(ctx context.Context, logger log.Logger, session *Session) error {
 		logger.Log("event", "phase.started", "phase", "vote")
 
 		if session.CurrentPhase != PhaseNone {
-			return session, fmt.Errorf("%s: %v", ErrUnexpectedPhase, session.CurrentPhase)
+			return fmt.Errorf("%s: %v", ErrUnexpectedPhase, session.CurrentPhase)
 		}
 		session.CurrentPhase = PhaseVote
 
 		voteMessage := message.VoteBlock(session.ID.String(), session.QuestionsList)
 		_, _, err := session.slack.PostMessageContext(ctx, session.Team.ChannelID, slack.MsgOptionBlocks(voteMessage.BlockSet...))
 		if err != nil {
-			return session, fmt.Errorf("failed to post start message: %w", err)
+			return err
 		}
 
-		// spew.Dump(session)
-		return session, nil
+		return nil
 	}
 }

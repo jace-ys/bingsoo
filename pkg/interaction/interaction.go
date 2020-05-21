@@ -1,4 +1,4 @@
-package interactions
+package interaction
 
 import (
 	"errors"
@@ -20,19 +20,12 @@ type Payload struct {
 	Value     string
 }
 
-func ParseType(interaction *slack.InteractionCallback) (InteractionType, error) {
-	switch {
-	case interaction.ActionCallback.BlockActions != nil:
-		return Action, nil
-	case interaction.View.State != nil:
-		return Response, nil
-	default:
-		return "", ErrInvalidInteraction
-	}
-}
-
-func GetActions(interaction *slack.InteractionCallback) []*Payload {
+func ParseBlockActions(interaction *slack.InteractionCallback) []*Payload {
 	var actions []*Payload
+	if interaction.ActionCallback.BlockActions == nil {
+		return actions
+	}
+
 	for _, action := range interaction.ActionCallback.BlockActions {
 		sessionID := strings.SplitN(action.ActionID, "/", 2)[0]
 		actions = append(actions, &Payload{
@@ -46,8 +39,12 @@ func GetActions(interaction *slack.InteractionCallback) []*Payload {
 	return actions
 }
 
-func GetResponses(interaction *slack.InteractionCallback) []*Payload {
+func ParseViewSubmission(interaction *slack.InteractionCallback) []*Payload {
 	var responses []*Payload
+	if interaction.View.State == nil {
+		return responses
+	}
+
 	for blockID, actions := range interaction.View.State.Values {
 		for actionID, action := range actions {
 			sessionID := strings.SplitN(actionID, "/", 2)[0]

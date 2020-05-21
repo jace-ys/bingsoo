@@ -33,50 +33,48 @@ func NewManager(logger log.Logger, redis *redis.Client) *Manager {
 	}
 }
 
-type ManageSessionFunc func(ctx context.Context, logger log.Logger, session *Session) (*Session, error)
+type ManageSessionFunc func(ctx context.Context, logger log.Logger, session *Session) error
 
-func (m *Manager) ManageSession(logger log.Logger, session *Session, existing bool, manage ManageSessionFunc) {
-	var err error
-	defer func() {
-		if err != nil {
-			// TODO: clean up session in the face of error
-			logger.Log("event", "session.cleanup")
-		}
-	}()
-
+func (m *Manager) ManageSession(logger log.Logger, teamID, sessionID string, manage ManageSessionFunc) error {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	if existing {
-		retrieved, err := m.retrieveSession(ctx, session.Team.TeamID)
-		if err != nil {
-			logger.Log("event", "session.failed", "error", err)
-			return
-		}
+	session, err := m.retrieveSession(ctx, teamID)
+	if err != nil {
+		return err
+	}
 
-		if retrieved.ID != session.ID {
-			logger.Log("event", "session.failed", "error", ErrSessionNotFound)
-			return
-		}
-
-		session = retrieved
+	if session.ID.String() != sessionID {
+		return ErrSessionNotFound
 	}
 
 	session.slack = slack.New(session.Team.AccessToken)
-	session, err = manage(ctx, logger, session)
+	err = manage(ctx, logger, session)
 	if err != nil {
-		logger.Log("event", "session.failed", "error", err)
-		return
+		return err
 	}
 
 	err = m.cacheSession(ctx, session)
 	if err != nil {
-		logger.Log("event", "session.failed", "error", err)
-		return
+		return err
 	}
+
+	return nil
 }
 
-func (m *Manager) cacheSession(ctx context.Context, session *Session) error {
+func (m *Manager) TeardownSession(logger log.Logger, session *Session) {
+	logger.Log("event", "session.cleanup")
+	// TODO: clean up session in the face of error
+}
+
+func (m *Manager) validateSession(session *Session, channelID string) error {
+	if channelID != session.Team.ChannelID {
+		return ErrUnauthorizedChannel
+	}
+	return nil
+}
+
+func (m *Manager) initSession(ctx context.Context, session *Session) error {
 	data, err := json.Marshal(session)
 	if err != nil {
 		return err
@@ -84,14 +82,19 @@ func (m *Manager) cacheSession(ctx context.Context, session *Session) error {
 
 	ttl := session.ExpiresAt.Sub(time.Now()) / time.Second
 	err = m.redis.Transact(ctx, func(conn redigo.Conn) error {
-		_, err := conn.Do("SET", session.Team.TeamID, string(data), "EX", strconv.Itoa(int(ttl)))
+		_, err := redigo.String(conn.Do("SET", session.Team.TeamID, string(data), "NX", "EX", strconv.Itoa(int(ttl))))
 		return err
 	})
 	if err != nil {
-		return err
+		switch {
+		case errors.Is(err, redigo.ErrNil):
+			return ErrExistingSession
+		default:
+			return err
+		}
 	}
 
-	return err
+	return nil
 }
 
 func (m *Manager) retrieveSession(ctx context.Context, teamID string) (session *Session, err error) {
@@ -118,4 +121,22 @@ func (m *Manager) retrieveSession(ctx context.Context, teamID string) (session *
 	}
 
 	return session, nil
+}
+
+func (m *Manager) cacheSession(ctx context.Context, session *Session) error {
+	data, err := json.Marshal(session)
+	if err != nil {
+		return err
+	}
+
+	ttl := session.ExpiresAt.Sub(time.Now()) / time.Second
+	err = m.redis.Transact(ctx, func(conn redigo.Conn) error {
+		_, err := conn.Do("SET", session.Team.TeamID, string(data), "EX", strconv.Itoa(int(ttl)))
+		return err
+	})
+	if err != nil {
+		return err
+	}
+
+	return err
 }

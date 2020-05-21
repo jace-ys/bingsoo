@@ -5,7 +5,7 @@ import (
 
 	"github.com/slack-go/slack"
 
-	"github.com/jace-ys/bingsoo/pkg/interactions"
+	"github.com/jace-ys/bingsoo/pkg/interaction"
 	"github.com/jace-ys/bingsoo/pkg/question"
 )
 
@@ -77,7 +77,7 @@ Answer the following question to participate.
 	headerSectionBlock := slack.NewSectionBlock(headerTextBlock, nil, nil)
 	blocks = append(blocks, headerSectionBlock)
 
-	answerButtonBlockID := interactions.ActionQuestionView
+	answerButtonBlockID := interaction.ActionQuestionView
 	answerButtonTextBlock := slack.NewTextBlockObject(slack.PlainTextType, "Answer question", false, false)
 	answerButtonBlockElement := slack.NewButtonBlockElement(fmt.Sprintf("%s/%s", sessionID, answerButtonBlockID), "", answerButtonTextBlock)
 	answerButtonBlockElement.WithStyle(slack.StylePrimary)

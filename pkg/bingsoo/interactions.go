@@ -8,8 +8,7 @@ import (
 	"github.com/go-kit/kit/log"
 	"github.com/slack-go/slack"
 
-	"github.com/jace-ys/bingsoo/pkg/interactions"
-	"github.com/jace-ys/bingsoo/pkg/session"
+	"github.com/jace-ys/bingsoo/pkg/interaction"
 	"github.com/jace-ys/bingsoo/pkg/team"
 )
 
@@ -24,13 +23,8 @@ func (bot *BingsooBot) interactions(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	it, err := interactions.ParseType(i)
-	if err != nil {
-		return
-	}
-
-	logger := log.With(bot.logger, "team", i.Team.ID, "user", i.User.ID, "channel", i.Channel.ID, "interaction", it)
-	logger.Log("event", "interaction.parsed")
+	logger := log.With(bot.logger, "team", i.Team.ID, "user", i.User.ID, "channel", i.Channel.ID)
+	logger.Log("event", "interaction.parsed", "type", i.Type)
 
 	t, err := bot.team.Get(ctx, i.Team.ID)
 	if err != nil {
@@ -44,18 +38,22 @@ func (bot *BingsooBot) interactions(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	switch it {
-	case interactions.Action:
-		actions := interactions.GetActions(i)
-		for _, action := range actions {
-			logger.Log("event", "action.parsed", "session", action.SessionID, "block", action.BlockID, "action", action.ActionID, "value", action.Value)
-			bot.handleInteractionAction(logger, t, action)
+	switch i.Type {
+	case slack.InteractionTypeBlockActions:
+		for _, action := range interaction.ParseBlockActions(i) {
+			err := bot.session.HandleInteractionAction(t.TeamID, action)
+			if err != nil {
+				logger.Log("event", "interaction.failed", "error", err)
+				return
+			}
 		}
-	case interactions.Response:
-		responses := interactions.GetResponses(i)
-		for _, response := range responses {
-			logger.Log("event", "response.parsed", "session", response.SessionID, "block", response.BlockID, "action", response.ActionID, "value", response.Value)
-			bot.handleInteractionResponse(logger, t, response)
+	case slack.InteractionTypeViewSubmission:
+		for _, response := range interaction.ParseViewSubmission(i) {
+			err := bot.session.HandleInteractionResponse(t.TeamID, response)
+			if err != nil {
+				logger.Log("event", "interaction.failed", "error", err)
+				return
+			}
 		}
 	}
 
@@ -65,25 +63,11 @@ func (bot *BingsooBot) interactions(w http.ResponseWriter, r *http.Request) {
 func (bot *BingsooBot) parseInteraction(r *http.Request) (*slack.InteractionCallback, error) {
 	payload := r.FormValue("payload")
 
-	var interaction slack.InteractionCallback
-	err := json.Unmarshal([]byte(payload), &interaction)
+	var i slack.InteractionCallback
+	err := json.Unmarshal([]byte(payload), &i)
 	if err != nil {
 		return nil, err
 	}
 
-	return &interaction, nil
-}
-
-func (bot *BingsooBot) handleInteractionAction(logger log.Logger, team *team.Team, action *interactions.Payload) {
-	switch action.BlockID {
-	case interactions.ActionQuestionView:
-		session := &session.Session{ID: action.SessionID, Team: team}
-		bot.session.ManageSession(logger, session, true, bot.session.OpenAnswerModal(action.TriggerID))
-	}
-}
-
-func (bot *BingsooBot) handleInteractionResponse(logger log.Logger, team *team.Team, response *interactions.Payload) {
-	switch response.BlockID {
-	case interactions.ResponseAnswerSubmit:
-	}
+	return &i, nil
 }

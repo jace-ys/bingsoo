@@ -11,21 +11,20 @@ import (
 )
 
 func (m *Manager) startResultsPhase() ManageSessionFunc {
-	return func(ctx context.Context, logger log.Logger, session *Session) (*Session, error) {
+	return func(ctx context.Context, logger log.Logger, session *Session) error {
 		logger.Log("event", "phase.started", "phase", "results")
 
 		if session.CurrentPhase != PhaseAnswer {
-			return session, fmt.Errorf("%s: %v", ErrUnexpectedPhase, session.CurrentPhase)
+			return fmt.Errorf("%s: %v", ErrUnexpectedPhase, session.CurrentPhase)
 		}
 		session.CurrentPhase = PhaseResult
 
 		err := m.releaseResults(ctx, session)
 		if err != nil {
-			return session, err
+			return err
 		}
 
-		// spew.Dump(session)
-		return session, nil
+		return nil
 	}
 }
 

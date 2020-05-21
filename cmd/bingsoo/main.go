@@ -68,14 +68,14 @@ type config struct {
 func parseCommand() *config {
 	var c config
 
-	kingpin.Flag("port", "Port for the Bingsoo server.").Default("8080").IntVar(&c.port)
-	kingpin.Flag("concurrency", "Number of concurrent workers to process tasks.").Default("4").IntVar(&c.concurrency)
-	kingpin.Flag("signing-secret", "Signing secret for verifying requests from Slack.").Required().StringVar(&c.bot.SigningSecret)
-	kingpin.Flag("postgres-host", "Host for connecting to Postgres").Default("127.0.0.1:5432").StringVar(&c.database.Host)
-	kingpin.Flag("postgres-user", "User for connecting to Postgres").Default("postgres").StringVar(&c.database.User)
-	kingpin.Flag("postgres-password", "Password for connecting to Postgres").Required().StringVar(&c.database.Password)
-	kingpin.Flag("postgres-db", "Database for connecting to Postgres").Default("postgres").StringVar(&c.database.Database)
-	kingpin.Flag("redis-host", "Host for connecting to Redis").Default("127.0.0.1:6379").StringVar(&c.cache.Host)
+	kingpin.Flag("port", "Port for the Bingsoo server.").Envar("PORT").Default("8080").IntVar(&c.port)
+	kingpin.Flag("concurrency", "Number of concurrent workers to process tasks.").Envar("CONCURRENCY").Default("4").IntVar(&c.concurrency)
+	kingpin.Flag("signing-secret", "Signing secret for verifying requests from Slack.").Envar("SIGNING_SECRET").Required().StringVar(&c.bot.SigningSecret)
+	kingpin.Flag("postgres-host", "Host for connecting to Postgres").Envar("POSTGRES_HOST").Default("127.0.0.1:5432").StringVar(&c.database.Host)
+	kingpin.Flag("postgres-user", "User for connecting to Postgres").Envar("POSTGRES_USER").Default("postgres").StringVar(&c.database.User)
+	kingpin.Flag("postgres-password", "Password for connecting to Postgres").Envar("POSTGRES_PASSWORD").Required().StringVar(&c.database.Password)
+	kingpin.Flag("postgres-db", "Database for connecting to Postgres").Envar("POSTGRES_DB").Default("postgres").StringVar(&c.database.Database)
+	kingpin.Flag("redis-host", "Host for connecting to Redis").Envar("REDIS_HOST").Default("127.0.0.1:6379").StringVar(&c.cache.Host)
 	kingpin.Parse()
 
 	return &c
