@@ -40,8 +40,7 @@ func VoteBlock(sessionID string, questions []*question.Question) slack.Blocks {
 	headerText := `
 *:shaved_ice: It's time for some icebreakers! :shaved_ice:*
 Suggest questions to ask your teammates or vote on your favourite ones.
-People will be chosen at random to answer the selected question, and I will reveal their answers here at the end! :flushed:
-`
+People will be chosen at random to answer the selected question, and I will reveal their answers here at the end! :flushed:`
 	headerTextBlock := slack.NewTextBlockObject(slack.MarkdownType, headerText, false, false)
 	headerSectionBlock := slack.NewSectionBlock(headerTextBlock, nil, nil)
 	blocks = append(blocks, headerSectionBlock, slack.NewDividerBlock())
@@ -69,11 +68,10 @@ People will be chosen at random to answer the selected question, and I will reve
 func QuestionBlock(sessionID, channelID string) slack.Blocks {
 	var blocks []slack.Block
 
-	headerText := `
+	headerText := fmt.Sprintf(`
 *An icebreaker session has been started in <#%s> and you have been selected! :shaved_ice:*
-Answer the following question to participate.
-`
-	headerTextBlock := slack.NewTextBlockObject(slack.MarkdownType, fmt.Sprintf(headerText, channelID), false, false)
+Answer the following question to participate.`, channelID)
+	headerTextBlock := slack.NewTextBlockObject(slack.MarkdownType, headerText, false, false)
 	headerSectionBlock := slack.NewSectionBlock(headerTextBlock, nil, nil)
 	blocks = append(blocks, headerSectionBlock)
 
@@ -87,16 +85,36 @@ Answer the following question to participate.
 	return slack.Blocks{blocks}
 }
 
-func ResultBlock(question *question.Question) slack.Blocks {
+func ResultBlock(question *question.Question, responses map[string]string) slack.Blocks {
 	var blocks []slack.Block
 
-	headerText := `
+	headerText := fmt.Sprintf(`
 :drum_with_drumsticks: *It's time! :drum_with_drumsticks: Revealing your teammates' responses to the icebreaker question:*
-%s
-`
-	headerTextBlock := slack.NewTextBlockObject(slack.MarkdownType, fmt.Sprintf(headerText, question.Value), false, false)
+%s`, question.Value)
+	headerTextBlock := slack.NewTextBlockObject(slack.MarkdownType, headerText, false, false)
 	headerSectionBlock := slack.NewSectionBlock(headerTextBlock, nil, nil)
 	blocks = append(blocks, headerSectionBlock, slack.NewDividerBlock())
+
+	empty := true
+	for userID, response := range responses {
+		if response != "" {
+			responseText := fmt.Sprintf(`<@%s> said: %s`, userID, response)
+			responseTextBlock := slack.NewTextBlockObject(slack.MarkdownType, responseText, false, false)
+			responseSectionBlock := slack.NewSectionBlock(responseTextBlock, nil, nil)
+			blocks = append(blocks, responseSectionBlock)
+
+			empty = false
+		}
+	}
+
+	if empty {
+		responseText := `
+Hmm... it seems like no one responded.
+Did someone forget to tell me today was a holiday? :see_no_evil:`
+		responseTextBlock := slack.NewTextBlockObject(slack.MarkdownType, responseText, false, false)
+		responseSectionBlock := slack.NewSectionBlock(responseTextBlock, nil, nil)
+		blocks = append(blocks, responseSectionBlock)
+	}
 
 	return slack.Blocks{blocks}
 }

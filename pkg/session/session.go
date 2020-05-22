@@ -110,7 +110,7 @@ func (m *Manager) HandleInteractionResponse(teamID string, response *interaction
 	logger := log.With(m.logger, "session", response.SessionID, "block", response.BlockID, "value", response.Value)
 	switch response.BlockID {
 	case interaction.ResponseAnswerSubmit:
-		err := m.ManageSession(logger, teamID, response.SessionID.String(), m.handleAnswerInput())
+		err := m.ManageSession(logger, teamID, response.SessionID.String(), m.handleAnswerInput(response))
 		if err != nil {
 			return err
 		}

@@ -8,6 +8,7 @@ import (
 	"github.com/go-kit/kit/log"
 	"github.com/slack-go/slack"
 
+	"github.com/jace-ys/bingsoo/pkg/interaction"
 	"github.com/jace-ys/bingsoo/pkg/message"
 	"github.com/jace-ys/bingsoo/pkg/question"
 )
@@ -96,9 +97,14 @@ func (m *Manager) openQuestionModal(triggerID string) ManageSessionFunc {
 	}
 }
 
-func (m *Manager) handleAnswerInput() ManageSessionFunc {
+func (m *Manager) handleAnswerInput(response *interaction.Payload) ManageSessionFunc {
 	return func(ctx context.Context, logger log.Logger, session *Session) error {
 		logger.Log("event", "input.handled", "type", "answer")
+
+		_, ok := session.Participants[response.UserID]
+		if ok {
+			session.Participants[response.UserID] = response.Value
+		}
 
 		return nil
 	}

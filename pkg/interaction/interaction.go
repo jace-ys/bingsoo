@@ -14,6 +14,7 @@ var (
 
 type Payload struct {
 	SessionID uuid.UUID
+	UserID    string
 	BlockID   string
 	ActionID  string
 	TriggerID string
@@ -30,6 +31,7 @@ func ParseBlockActions(interaction *slack.InteractionCallback) []*Payload {
 		sessionID := strings.SplitN(action.ActionID, "/", 2)[0]
 		actions = append(actions, &Payload{
 			SessionID: uuid.MustParse(sessionID),
+			UserID:    interaction.User.ID,
 			BlockID:   action.BlockID,
 			ActionID:  action.ActionID,
 			TriggerID: interaction.TriggerID,
@@ -50,6 +52,7 @@ func ParseViewSubmission(interaction *slack.InteractionCallback) []*Payload {
 			sessionID := strings.SplitN(actionID, "/", 2)[0]
 			responses = append(responses, &Payload{
 				SessionID: uuid.MustParse(sessionID),
+				UserID:    interaction.User.ID,
 				BlockID:   blockID,
 				ActionID:  actionID,
 				TriggerID: interaction.TriggerID,

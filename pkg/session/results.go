@@ -29,7 +29,7 @@ func (m *Manager) startResultsPhase() ManageSessionFunc {
 }
 
 func (m *Manager) releaseResults(ctx context.Context, session *Session) error {
-	resultMessage := message.ResultBlock(session.SelectedQuestion)
+	resultMessage := message.ResultBlock(session.SelectedQuestion, session.Participants)
 	_, _, err := session.slack.PostMessageContext(ctx, session.Team.ChannelID, slack.MsgOptionBlocks(resultMessage.BlockSet...))
 	if err != nil {
 		return err
