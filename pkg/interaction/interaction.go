@@ -28,12 +28,13 @@ func ParseBlockActions(interaction *slack.InteractionCallback) []*Payload {
 	}
 
 	for _, action := range interaction.ActionCallback.BlockActions {
-		sessionID := strings.SplitN(action.ActionID, "/", 2)[0]
+		identifier := strings.SplitN(action.ActionID, "/", 2)
+
 		actions = append(actions, &Payload{
-			SessionID: uuid.MustParse(sessionID),
+			SessionID: uuid.MustParse(identifier[0]),
 			UserID:    interaction.User.ID,
 			BlockID:   action.BlockID,
-			ActionID:  action.ActionID,
+			ActionID:  identifier[1],
 			TriggerID: interaction.TriggerID,
 			Value:     action.Value,
 		})
@@ -49,12 +50,13 @@ func ParseViewSubmission(interaction *slack.InteractionCallback) []*Payload {
 
 	for blockID, actions := range interaction.View.State.Values {
 		for actionID, action := range actions {
-			sessionID := strings.SplitN(actionID, "/", 2)[0]
+			identifier := strings.SplitN(actionID, "/", 2)
+
 			responses = append(responses, &Payload{
-				SessionID: uuid.MustParse(sessionID),
+				SessionID: uuid.MustParse(identifier[0]),
 				UserID:    interaction.User.ID,
 				BlockID:   blockID,
-				ActionID:  actionID,
+				ActionID:  identifier[1],
 				TriggerID: interaction.TriggerID,
 				Value:     action.Value,
 			})

@@ -2,6 +2,7 @@ package session
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"math/rand"
 
@@ -10,7 +11,10 @@ import (
 
 	"github.com/jace-ys/bingsoo/pkg/interaction"
 	"github.com/jace-ys/bingsoo/pkg/message"
-	"github.com/jace-ys/bingsoo/pkg/question"
+)
+
+var (
+	ErrParticipantNotFound = errors.New("participant not found")
 )
 
 func (m *Manager) startAnswerPhase() ManageSessionFunc {
@@ -61,9 +65,16 @@ func (m *Manager) selectParticipants(ctx context.Context, session *Session) (map
 	return participants, nil
 }
 
-func (m *Manager) selectQuestion(session *Session) *question.Question {
-	questions := session.QuestionsList
-	return questions[rand.Intn(len(questions))]
+func (m *Manager) selectQuestion(session *Session) string {
+	var selected string
+	highest := -1
+	for question, votes := range session.QuestionSet {
+		if votes > highest {
+			selected = question
+			highest = votes
+		}
+	}
+	return selected
 }
 
 func (m *Manager) deliverQuestion(ctx context.Context, session *Session) error {
@@ -84,11 +95,11 @@ func (m *Manager) deliverQuestion(ctx context.Context, session *Session) error {
 	return nil
 }
 
-func (m *Manager) openQuestionModal(triggerID string) ManageSessionFunc {
+func (m *Manager) openQuestionModal(action *interaction.Payload) ManageSessionFunc {
 	return func(ctx context.Context, logger log.Logger, session *Session) error {
 		logger.Log("event", "modal.opened", "type", "question")
 
-		_, err := session.slack.OpenViewContext(ctx, triggerID, message.AnswerModal(session.ID.String(), session.SelectedQuestion))
+		_, err := session.slack.OpenViewContext(ctx, action.TriggerID, message.AnswerModal(session.ID.String(), session.SelectedQuestion))
 		if err != nil {
 			return err
 		}
@@ -102,9 +113,10 @@ func (m *Manager) handleAnswerInput(response *interaction.Payload) ManageSession
 		logger.Log("event", "input.handled", "type", "answer")
 
 		_, ok := session.Participants[response.UserID]
-		if ok {
-			session.Participants[response.UserID] = response.Value
+		if !ok {
+			return ErrParticipantNotFound
 		}
+		session.Participants[response.UserID] = response.Value
 
 		return nil
 	}

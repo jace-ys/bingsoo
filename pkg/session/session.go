@@ -25,8 +25,8 @@ const (
 type Session struct {
 	ID               uuid.UUID
 	Team             *team.Team
-	QuestionsList    []*question.Question
-	SelectedQuestion *question.Question
+	QuestionSet      question.QuestionSet
+	SelectedQuestion string
 	Participants     map[string]string
 
 	CurrentPhase        Phase
@@ -34,15 +34,17 @@ type Session struct {
 	AnswerPhaseDeadline time.Duration
 	ExpiresAt           time.Time
 
+	VoteMessage *slack.Msg
+
 	slack *slack.Client
 }
 
-func (m *Manager) NewIcebreaker(ctx context.Context, team *team.Team, questions []*question.Question, channelID string) (*Session, error) {
+func (m *Manager) NewIcebreaker(ctx context.Context, team *team.Team, questions question.QuestionSet, channelID string) (*Session, error) {
 	duration := time.Duration(team.SessionDurationMins) * time.Minute
 	session := &Session{
 		ID:                  uuid.New(),
 		Team:                team,
-		QuestionsList:       questions,
+		QuestionSet:         questions,
 		CurrentPhase:        PhaseNone,
 		VotePhaseDeadline:   duration / 2,
 		AnswerPhaseDeadline: duration,
@@ -96,9 +98,19 @@ func (m *Manager) StartSession(ctx context.Context, session *Session) error {
 
 func (m *Manager) HandleInteractionAction(teamID string, action *interaction.Payload) error {
 	logger := log.With(m.logger, "session", action.SessionID, "block", action.BlockID, "value", action.Value)
-	switch action.BlockID {
+	switch action.ActionID {
+	case interaction.ActionVoteSubmit:
+		err := m.ManageSession(logger, teamID, action.SessionID.String(), m.handleVoteInput(action))
+		if err != nil {
+			return err
+		}
+	case interaction.ActionSuggestionView:
+		err := m.ManageSession(logger, teamID, action.SessionID.String(), m.openSuggestionModal(action))
+		if err != nil {
+			return err
+		}
 	case interaction.ActionQuestionView:
-		err := m.ManageSession(logger, teamID, action.SessionID.String(), m.openQuestionModal(action.TriggerID))
+		err := m.ManageSession(logger, teamID, action.SessionID.String(), m.openQuestionModal(action))
 		if err != nil {
 			return err
 		}
@@ -108,7 +120,12 @@ func (m *Manager) HandleInteractionAction(teamID string, action *interaction.Pay
 
 func (m *Manager) HandleInteractionResponse(teamID string, response *interaction.Payload) error {
 	logger := log.With(m.logger, "session", response.SessionID, "block", response.BlockID, "value", response.Value)
-	switch response.BlockID {
+	switch response.ActionID {
+	case interaction.ResponseSuggestionSubmit:
+		err := m.ManageSession(logger, teamID, response.SessionID.String(), m.handleSuggestionInput(response))
+		if err != nil {
+			return err
+		}
 	case interaction.ResponseAnswerSubmit:
 		err := m.ManageSession(logger, teamID, response.SessionID.String(), m.handleAnswerInput(response))
 		if err != nil {

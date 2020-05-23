@@ -2,8 +2,12 @@ package worker
 
 import (
 	"context"
-	"fmt"
+	"errors"
 	"sync"
+)
+
+var (
+	ErrMaxCapacity = errors.New("task queue is at max capacity")
 )
 
 type Task interface {
@@ -41,7 +45,7 @@ func (p *WorkerPool) Enqueue(task Task) error {
 	case p.taskChan <- task:
 		return nil
 	default:
-		return fmt.Errorf("task queue is at max capacity")
+		return ErrMaxCapacity
 	}
 }
 

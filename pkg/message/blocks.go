@@ -34,7 +34,7 @@ Use the following commands to interact with me.
 	return slack.Blocks{blocks}
 }
 
-func VoteBlock(sessionID string, questions []*question.Question) slack.Blocks {
+func VoteBlock(sessionID string, questions question.QuestionSet) slack.Blocks {
 	var blocks []slack.Block
 
 	headerText := `
@@ -45,21 +45,23 @@ People will be chosen at random to answer the selected question, and I will reve
 	headerSectionBlock := slack.NewSectionBlock(headerTextBlock, nil, nil)
 	blocks = append(blocks, headerSectionBlock, slack.NewDividerBlock())
 
-	for _, question := range questions {
+	for question := range questions {
+		voteButtonID := interaction.ActionVoteSubmit
 		voteButtonTextBlock := slack.NewTextBlockObject(slack.PlainTextType, "Vote", false, false)
-		voteButtonBlockElement := slack.NewButtonBlockElement(fmt.Sprintf("%s/vote/submit", sessionID), question.Value, voteButtonTextBlock)
+		voteButtonBlockElement := slack.NewButtonBlockElement(fmt.Sprintf("%s/%s", sessionID, voteButtonID), question, voteButtonTextBlock)
 		voteButtonBlockElement.WithStyle(slack.StylePrimary)
 
-		questionTextBlock := slack.NewTextBlockObject(slack.MarkdownType, question.Value, false, false)
+		questionTextBlock := slack.NewTextBlockObject(slack.MarkdownType, question, false, false)
 		questionSectionBlock := slack.NewSectionBlock(questionTextBlock, nil, slack.NewAccessory(voteButtonBlockElement))
 		blocks = append(blocks, questionSectionBlock)
 	}
 	blocks = append(blocks, slack.NewDividerBlock())
 
+	suggestButtonBlockID := interaction.ActionSuggestionView
 	suggestButtonTextBlock := slack.NewTextBlockObject(slack.PlainTextType, "Suggest a question", false, false)
-	suggestButtonBlockElement := slack.NewButtonBlockElement(fmt.Sprintf("%s/suggest/submit", sessionID), "", suggestButtonTextBlock)
+	suggestButtonBlockElement := slack.NewButtonBlockElement(fmt.Sprintf("%s/%s", sessionID, suggestButtonBlockID), "", suggestButtonTextBlock)
 	suggestButtonBlockElement.WithStyle(slack.StylePrimary)
-	suggestButtonActionBlock := slack.NewActionBlock("suggest/submit", suggestButtonBlockElement)
+	suggestButtonActionBlock := slack.NewActionBlock(suggestButtonBlockID, suggestButtonBlockElement)
 	blocks = append(blocks, suggestButtonActionBlock)
 
 	return slack.Blocks{blocks}
@@ -85,12 +87,12 @@ Answer the following question to participate.`, channelID)
 	return slack.Blocks{blocks}
 }
 
-func ResultBlock(question *question.Question, responses map[string]string) slack.Blocks {
+func ResultBlock(question string, responses map[string]string) slack.Blocks {
 	var blocks []slack.Block
 
 	headerText := fmt.Sprintf(`
 :drum_with_drumsticks: *It's time! :drum_with_drumsticks: Revealing your teammates' responses to the icebreaker question:*
-%s`, question.Value)
+%s`, question)
 	headerTextBlock := slack.NewTextBlockObject(slack.MarkdownType, headerText, false, false)
 	headerSectionBlock := slack.NewSectionBlock(headerTextBlock, nil, nil)
 	blocks = append(blocks, headerSectionBlock, slack.NewDividerBlock())

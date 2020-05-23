@@ -3,11 +3,14 @@ package interaction
 type Action = string
 
 const (
-	ActionQuestionView Action = "question/view"
+	ActionVoteSubmit     Action = "vote/submit"
+	ActionSuggestionView Action = "suggest/view"
+	ActionQuestionView   Action = "question/view"
 )
 
 type Response = string
 
 const (
-	ResponseAnswerSubmit Response = "answer/submit"
+	ResponseSuggestionSubmit Response = "suggest/submit"
+	ResponseAnswerSubmit     Response = "answer/submit"
 )

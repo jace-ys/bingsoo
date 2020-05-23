@@ -51,7 +51,9 @@ func (b *Bank) List(ctx context.Context) ([]*Question, error) {
 	return questions, nil
 }
 
-func (b *Bank) NewQuestionSet(ctx context.Context, num int) ([]*Question, error) {
+type QuestionSet map[string]int
+
+func (b *Bank) NewQuestionSet(ctx context.Context, num int) (QuestionSet, error) {
 	questions, err := b.List(ctx)
 	if err != nil {
 		return nil, err
@@ -61,15 +63,10 @@ func (b *Bank) NewQuestionSet(ctx context.Context, num int) ([]*Question, error)
 		num = len(questions)
 	}
 
-	unique := make(map[*Question]struct{})
-	for len(unique) < num {
+	set := make(QuestionSet, num)
+	for i := 0; i < num; i++ {
 		question := questions[rand.Intn(len(questions))]
-		unique[question] = struct{}{}
-	}
-
-	var set []*Question
-	for question := range unique {
-		set = append(set, question)
+		set[question.Value] = 0
 	}
 
 	return set, nil
