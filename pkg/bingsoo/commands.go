@@ -60,7 +60,11 @@ func (bot *BingsooBot) commands(w http.ResponseWriter, r *http.Request) {
 	case "start":
 		rand.Seed(time.Now().Unix())
 
-		questions := bot.question.NewQuestionSet(3)
+		questions, err := bot.question.NewQuestionSet(ctx, 3)
+		if err != nil {
+			bot.defaultError(w, sc.UserID)
+			return
+		}
 
 		icebreaker, err := bot.session.NewIcebreaker(ctx, t, questions, sc.ChannelID)
 		if err != nil {

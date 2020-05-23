@@ -98,7 +98,7 @@ func ResultBlock(question *question.Question, responses map[string]string) slack
 	empty := true
 	for userID, response := range responses {
 		if response != "" {
-			responseText := fmt.Sprintf(`<@%s> said: %s`, userID, response)
+			responseText := fmt.Sprintf(`<@%s> answered: %s`, userID, response)
 			responseTextBlock := slack.NewTextBlockObject(slack.MarkdownType, responseText, false, false)
 			responseSectionBlock := slack.NewSectionBlock(responseTextBlock, nil, nil)
 			blocks = append(blocks, responseSectionBlock)

@@ -1,7 +1,10 @@
 package question
 
 import (
+	"context"
 	"math/rand"
+
+	"github.com/jmoiron/sqlx"
 
 	"github.com/jace-ys/bingsoo/pkg/postgres"
 )
@@ -12,43 +15,62 @@ type Question struct {
 }
 
 type Bank struct {
-	database  *postgres.Client
-	questions []*Question
+	database *postgres.Client
 }
 
 func NewBank(database *postgres.Client) *Bank {
 	return &Bank{
 		database: database,
-		questions: []*Question{
-			&Question{Value: "What's your favourite book?"},
-			&Question{Value: "What's your favourite movie?"},
-			&Question{Value: "Where's your dream destination?"},
-			&Question{Value: "Tabs or spaces?"},
-			&Question{Value: "Tell us a fun fact about yourself."},
-			&Question{Value: "Favourite ice cream flavour?"},
-			&Question{Value: "What's the most recent TV show you've watched?"},
-			&Question{Value: "Favourite quote of all time?"},
-			&Question{Value: "What languages can you speak?"},
-			&Question{Value: "What genre of music do you listen to?"},
-		},
 	}
 }
 
-func (b *Bank) NewQuestionSet(num int) []*Question {
-	if len(b.questions) < num {
-		num = len(b.questions)
+func (b *Bank) List(ctx context.Context) ([]*Question, error) {
+	var questions []*Question
+	err := b.database.Transact(ctx, func(tx *sqlx.Tx) error {
+		query := `
+		SELECT q.id, q.value
+		FROM questions AS q
+		`
+		rows, err := tx.QueryxContext(ctx, query)
+		if err != nil {
+			return err
+		}
+		defer rows.Close()
+		for rows.Next() {
+			var question Question
+			if err := rows.StructScan(&question); err != nil {
+				return err
+			}
+			questions = append(questions, &question)
+		}
+		return rows.Err()
+	})
+	if err != nil {
+		return nil, err
+	}
+	return questions, nil
+}
+
+func (b *Bank) NewQuestionSet(ctx context.Context, num int) ([]*Question, error) {
+	questions, err := b.List(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(questions) < num {
+		num = len(questions)
 	}
 
 	unique := make(map[*Question]struct{})
 	for len(unique) < num {
-		question := b.questions[rand.Intn(len(b.questions))]
+		question := questions[rand.Intn(len(questions))]
 		unique[question] = struct{}{}
 	}
 
-	var questions []*Question
+	var set []*Question
 	for question := range unique {
-		questions = append(questions, question)
+		set = append(set, question)
 	}
 
-	return questions
+	return set, nil
 }

@@ -5,7 +5,7 @@ CREATE TABLE IF NOT EXISTS teams (
   team_domain TEXT UNIQUE NOT NULL,
   access_token TEXT UNIQUE NOT NULL,
   channel_id TEXT NOT NULL,
-  session_duration_mins INTEGER,
-  participant_quota INTEGER,
+  session_duration_mins INTEGER NOT NULL,
+  participant_quota INTEGER NOT NULL,
   PRIMARY KEY (id)
 );
