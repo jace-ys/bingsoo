@@ -49,7 +49,12 @@ func (m *Manager) handleVoteInput(response *interaction.Payload) ManageSessionFu
 	return func(ctx context.Context, logger log.Logger, session *Session) error {
 		logger.Log("event", "input.handled", "type", "vote")
 
-		err := session.QuestionSet.AddVote(response.Value, response.UserID)
+		user, err := session.slack.GetUserInfoContext(ctx, response.User.ID)
+		if err != nil {
+			return err
+		}
+
+		err = session.QuestionSet.AddVote(response.Value, user)
 		if err != nil {
 			return err
 		}

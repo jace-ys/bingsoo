@@ -6,6 +6,7 @@ import (
 	"math/rand"
 
 	"github.com/jmoiron/sqlx"
+	"github.com/slack-go/slack"
 
 	"github.com/jace-ys/bingsoo/pkg/postgres"
 )
@@ -57,7 +58,7 @@ func (b *Bank) List(ctx context.Context) ([]*Question, error) {
 	return questions, nil
 }
 
-type QuestionSet map[string]map[string]struct{}
+type QuestionSet map[string]map[string]*slack.User
 
 func (b *Bank) NewQuestionSet(ctx context.Context, num int) (QuestionSet, error) {
 	questions, err := b.List(ctx)
@@ -72,7 +73,7 @@ func (b *Bank) NewQuestionSet(ctx context.Context, num int) (QuestionSet, error)
 	set := make(QuestionSet)
 	for len(set) < num {
 		question := questions[rand.Intn(len(questions))]
-		set[question.Value] = make(map[string]struct{})
+		set[question.Value] = make(map[string]*slack.User)
 	}
 
 	return set, nil
@@ -83,15 +84,15 @@ func (set QuestionSet) AddQuestion(question string) error {
 	if ok {
 		return ErrQuestionExists
 	}
-	set[question] = make(map[string]struct{})
+	set[question] = make(map[string]*slack.User)
 	return nil
 }
 
-func (set QuestionSet) AddVote(question, userID string) error {
+func (set QuestionSet) AddVote(question string, user *slack.User) error {
 	_, ok := set[question]
 	if !ok {
 		return ErrQuestionNotFound
 	}
-	set[question][userID] = struct{}{}
+	set[question][user.ID] = user
 	return nil
 }

@@ -55,6 +55,11 @@ People will be chosen at random to answer the selected question, and I will reve
 		questionTextBlock := slack.NewTextBlockObject(slack.MarkdownType, question, false, false)
 		questionSectionBlock := slack.NewSectionBlock(questionTextBlock, nil, slack.NewAccessory(voteButtonBlockElement))
 		blocks = append(blocks, questionSectionBlock)
+
+		voteContextText := fmt.Sprintf("%d vote(s)", len(questions[question]))
+		voteContextTextBlock := slack.NewTextBlockObject(slack.PlainTextType, voteContextText, false, false)
+		voteContextBlock := slack.NewContextBlock("", voteContextTextBlock)
+		blocks = append(blocks, voteContextBlock)
 	}
 	blocks = append(blocks, slack.NewDividerBlock())
 

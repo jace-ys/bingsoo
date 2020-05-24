@@ -112,11 +112,11 @@ func (m *Manager) handleAnswerInput(response *interaction.Payload) ManageSession
 	return func(ctx context.Context, logger log.Logger, session *Session) error {
 		logger.Log("event", "input.handled", "type", "answer")
 
-		_, ok := session.Participants[response.UserID]
+		_, ok := session.Participants[response.User.ID]
 		if !ok {
 			return ErrParticipantNotFound
 		}
-		session.Participants[response.UserID] = response.Value
+		session.Participants[response.User.ID] = response.Value
 
 		return nil
 	}
