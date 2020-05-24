@@ -69,9 +69,9 @@ func (m *Manager) selectQuestion(session *Session) string {
 	var selected string
 	highest := -1
 	for question, votes := range session.QuestionSet {
-		if votes > highest {
+		if len(votes) > highest {
 			selected = question
-			highest = votes
+			highest = len(votes)
 		}
 	}
 	return selected

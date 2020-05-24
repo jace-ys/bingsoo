@@ -2,11 +2,17 @@ package question
 
 import (
 	"context"
+	"errors"
 	"math/rand"
 
 	"github.com/jmoiron/sqlx"
 
 	"github.com/jace-ys/bingsoo/pkg/postgres"
+)
+
+var (
+	ErrQuestionNotFound = errors.New("question not found")
+	ErrQuestionExists   = errors.New("question already exists in set")
 )
 
 type Question struct {
@@ -51,7 +57,7 @@ func (b *Bank) List(ctx context.Context) ([]*Question, error) {
 	return questions, nil
 }
 
-type QuestionSet map[string]int
+type QuestionSet map[string]map[string]struct{}
 
 func (b *Bank) NewQuestionSet(ctx context.Context, num int) (QuestionSet, error) {
 	questions, err := b.List(ctx)
@@ -63,11 +69,29 @@ func (b *Bank) NewQuestionSet(ctx context.Context, num int) (QuestionSet, error)
 		num = len(questions)
 	}
 
-	set := make(QuestionSet, num)
-	for i := 0; i < num; i++ {
+	set := make(QuestionSet)
+	for len(set) < num {
 		question := questions[rand.Intn(len(questions))]
-		set[question.Value] = 0
+		set[question.Value] = make(map[string]struct{})
 	}
 
 	return set, nil
+}
+
+func (set QuestionSet) AddQuestion(question string) error {
+	_, ok := set[question]
+	if ok {
+		return ErrQuestionExists
+	}
+	set[question] = make(map[string]struct{})
+	return nil
+}
+
+func (set QuestionSet) AddVote(question, userID string) error {
+	_, ok := set[question]
+	if !ok {
+		return ErrQuestionNotFound
+	}
+	set[question][userID] = struct{}{}
+	return nil
 }

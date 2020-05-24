@@ -2,7 +2,6 @@ package session
 
 import (
 	"context"
-	"errors"
 	"fmt"
 
 	"github.com/go-kit/kit/log"
@@ -10,11 +9,6 @@ import (
 
 	"github.com/jace-ys/bingsoo/pkg/interaction"
 	"github.com/jace-ys/bingsoo/pkg/message"
-)
-
-var (
-	ErrQuestionNotFound = errors.New("question not found")
-	ErrQuestionExists   = errors.New("question already exists in set")
 )
 
 func (m *Manager) startVotePhase() ManageSessionFunc {
@@ -55,11 +49,17 @@ func (m *Manager) handleVoteInput(response *interaction.Payload) ManageSessionFu
 	return func(ctx context.Context, logger log.Logger, session *Session) error {
 		logger.Log("event", "input.handled", "type", "vote")
 
-		_, ok := session.QuestionSet[response.Value]
-		if !ok {
-			return ErrQuestionNotFound
+		err := session.QuestionSet.AddVote(response.Value, response.UserID)
+		if err != nil {
+			return err
 		}
-		session.QuestionSet[response.Value]++
+
+		voteMessage := message.VoteBlock(session.ID.String(), session.QuestionSet)
+		channel, timestamp, _, err := session.slack.UpdateMessageContext(ctx, session.VoteMessage.Channel, session.VoteMessage.Timestamp, slack.MsgOptionBlocks(voteMessage.BlockSet...))
+		if err != nil {
+			return err
+		}
+		session.VoteMessage = &slack.Msg{Channel: channel, Timestamp: timestamp}
 
 		return nil
 	}
@@ -69,11 +69,10 @@ func (m *Manager) handleSuggestionInput(response *interaction.Payload) ManageSes
 	return func(ctx context.Context, logger log.Logger, session *Session) error {
 		logger.Log("event", "input.handled", "type", "suggestion")
 
-		_, ok := session.QuestionSet[response.Value]
-		if ok {
-			return ErrQuestionExists
+		err := session.QuestionSet.AddQuestion(response.Value)
+		if err != nil {
+			return err
 		}
-		session.QuestionSet[response.Value] = 0
 
 		voteMessage := message.VoteBlock(session.ID.String(), session.QuestionSet)
 		channel, timestamp, _, err := session.slack.UpdateMessageContext(ctx, session.VoteMessage.Channel, session.VoteMessage.Timestamp, slack.MsgOptionBlocks(voteMessage.BlockSet...))

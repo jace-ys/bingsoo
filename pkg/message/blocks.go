@@ -2,6 +2,7 @@ package message
 
 import (
 	"fmt"
+	"sort"
 
 	"github.com/slack-go/slack"
 
@@ -45,7 +46,7 @@ People will be chosen at random to answer the selected question, and I will reve
 	headerSectionBlock := slack.NewSectionBlock(headerTextBlock, nil, nil)
 	blocks = append(blocks, headerSectionBlock, slack.NewDividerBlock())
 
-	for question := range questions {
+	for _, question := range sortQuestions(questions) {
 		voteButtonID := interaction.ActionVoteSubmit
 		voteButtonTextBlock := slack.NewTextBlockObject(slack.PlainTextType, "Vote", false, false)
 		voteButtonBlockElement := slack.NewButtonBlockElement(fmt.Sprintf("%s/%s", sessionID, voteButtonID), question, voteButtonTextBlock)
@@ -119,4 +120,27 @@ Did someone forget to tell me today was a holiday? :see_no_evil:`
 	}
 
 	return slack.Blocks{blocks}
+}
+
+func sortQuestions(questions question.QuestionSet) []string {
+	type pair struct {
+		key   string
+		value int
+	}
+
+	var pairs []pair
+	for question, users := range questions {
+		pairs = append(pairs, pair{question, len(users)})
+	}
+
+	sort.Slice(pairs, func(i, j int) bool {
+		return pairs[i].value > pairs[j].value
+	})
+
+	sorted := make([]string, len(questions))
+	for idx, pair := range pairs {
+		sorted[idx] = pair.key
+	}
+
+	return sorted
 }
