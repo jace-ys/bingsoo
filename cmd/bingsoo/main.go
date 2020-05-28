@@ -6,11 +6,11 @@ import (
 
 	"github.com/alecthomas/kingpin"
 	"github.com/go-kit/kit/log"
+	"github.com/jace-ys/go-library/postgres"
+	"github.com/jace-ys/go-library/redis"
 	"golang.org/x/sync/errgroup"
 
 	"github.com/jace-ys/bingsoo/pkg/bingsoo"
-	"github.com/jace-ys/bingsoo/pkg/postgres"
-	"github.com/jace-ys/bingsoo/pkg/redis"
 )
 
 var logger log.Logger
@@ -21,21 +21,22 @@ func main() {
 	logger = log.NewLogfmtLogger(log.NewSyncWriter(os.Stdout))
 	logger = log.With(logger, "ts", log.DefaultTimestampUTC, "caller", log.DefaultCaller)
 
-	postgres, err := postgres.NewClient(c.database.Host, c.database.User, c.database.Password, c.database.Database)
+	postgres, err := postgres.NewClient(c.database.ConnectionURL)
 	if err != nil {
 		exit(err)
 	}
-	redis, err := redis.NewClient(c.cache.Host)
+	redis, err := redis.NewClient(c.cache.ConnectionURL)
 	if err != nil {
 		exit(err)
 	}
 
-	bot := bingsoo.NewBingsooBot(logger, postgres, redis, c.bot.SigningSecret)
+	bot := bingsoo.NewBingsooBot(logger, &c.bot, postgres, redis)
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
 	g, ctx := errgroup.WithContext(ctx)
+
 	g.Go(func() error {
 		return bot.StartServer(c.port)
 	})
@@ -71,11 +72,8 @@ func parseCommand() *config {
 	kingpin.Flag("port", "Port for the Bingsoo server.").Envar("PORT").Default("8080").IntVar(&c.port)
 	kingpin.Flag("concurrency", "Number of concurrent workers to process tasks.").Envar("CONCURRENCY").Default("4").IntVar(&c.concurrency)
 	kingpin.Flag("signing-secret", "Signing secret for verifying requests from Slack.").Envar("SIGNING_SECRET").Required().StringVar(&c.bot.SigningSecret)
-	kingpin.Flag("postgres-host", "Host for connecting to Postgres").Envar("POSTGRES_HOST").Default("127.0.0.1:5432").StringVar(&c.database.Host)
-	kingpin.Flag("postgres-user", "User for connecting to Postgres").Envar("POSTGRES_USER").Default("postgres").StringVar(&c.database.User)
-	kingpin.Flag("postgres-password", "Password for connecting to Postgres").Envar("POSTGRES_PASSWORD").Required().StringVar(&c.database.Password)
-	kingpin.Flag("postgres-db", "Database for connecting to Postgres").Envar("POSTGRES_DB").Default("postgres").StringVar(&c.database.Database)
-	kingpin.Flag("redis-host", "Host for connecting to Redis").Envar("REDIS_HOST").Default("127.0.0.1:6379").StringVar(&c.cache.Host)
+	kingpin.Flag("database-url", "URL for connecting to Postgres.").Envar("DATABASE_URL").Default("postgres://bingsoo:bingsoo@127.0.0.1:5432/bingsoo").StringVar(&c.database.ConnectionURL)
+	kingpin.Flag("redis-url", "URL for connecting to Redis.").Envar("REDIS_URL").Default("redis://127.0.0.1:6379").StringVar(&c.cache.ConnectionURL)
 	kingpin.Parse()
 
 	return &c

@@ -11,11 +11,11 @@ import (
 func SuggestionModal(sessionID string) slack.ModalViewRequest {
 	var blocks []slack.Block
 
-	suggestionInputBlockID := interaction.ResponseSuggestionSubmit
-	suggestionLabelTextBlock := slack.NewTextBlockObject(slack.PlainTextType, "Suggest a question", false, false)
+	suggestionInputID := interaction.ResponseSuggestionSubmit
 	suggestionPlaceholderTextBlock := slack.NewTextBlockObject(slack.PlainTextType, "Enter your question here", false, false)
-	suggestionInputBlockElement := slack.NewPlainTextInputBlockElement(suggestionPlaceholderTextBlock, fmt.Sprintf("%s/%s", sessionID, suggestionInputBlockID))
-	suggestionInputBlock := slack.NewInputBlock(suggestionInputBlockID, suggestionLabelTextBlock, suggestionInputBlockElement)
+	suggestionInputBlockElement := slack.NewPlainTextInputBlockElement(suggestionPlaceholderTextBlock, fmt.Sprintf("%s/%s", sessionID, suggestionInputID))
+	suggestionLabelTextBlock := slack.NewTextBlockObject(slack.PlainTextType, "Suggest a question", false, false)
+	suggestionInputBlock := slack.NewInputBlock(suggestionInputID, suggestionLabelTextBlock, suggestionInputBlockElement)
 	blocks = append(blocks, suggestionInputBlock)
 
 	return slack.ModalViewRequest{
@@ -40,11 +40,11 @@ func SuggestionModal(sessionID string) slack.ModalViewRequest {
 func AnswerModal(sessionID string, question string) slack.ModalViewRequest {
 	var blocks []slack.Block
 
-	answerInputBlockID := interaction.ResponseAnswerSubmit
+	answerInputID := interaction.ResponseAnswerSubmit
 	answerLabelTextBlock := slack.NewTextBlockObject(slack.PlainTextType, question, false, false)
 	answerPlaceholderTextBlock := slack.NewTextBlockObject(slack.PlainTextType, "Enter your answer here", false, false)
-	answerInputBlockElement := slack.NewPlainTextInputBlockElement(answerPlaceholderTextBlock, fmt.Sprintf("%s/%s", sessionID, answerInputBlockID))
-	answerInputBlock := slack.NewInputBlock(answerInputBlockID, answerLabelTextBlock, answerInputBlockElement)
+	answerInputBlockElement := slack.NewPlainTextInputBlockElement(answerPlaceholderTextBlock, fmt.Sprintf("%s/%s", sessionID, answerInputID))
+	answerInputBlock := slack.NewInputBlock(answerInputID, answerLabelTextBlock, answerInputBlockElement)
 	blocks = append(blocks, answerInputBlock)
 
 	return slack.ModalViewRequest{

@@ -18,16 +18,15 @@ run:
 		--port 8080 \
 		--concurrency 4 \
 		--signing-secret ${SIGNING_SECRET} \
-		--postgres-host 127.0.0.1:5432 \
-		--postgres-user bingsoo \
-		--postgres-password bingsoo \
-		--postgres-db bingsoo \
-		--redis-host 127.0.0.1:6379
+		--database-url postgres://bingsoo:bingsoo@127.0.0.1:5432/bingsoo?sslmode=disable \
+		--redis-url redis://127.0.0.1:6379
 
 image:
-	@docker-compose build bingsoo
+	@echo "==> Building image.."
+	docker-compose build bingsoo
 
 proxy:
+	@echo "==> Starting proxy.."
 	@ngrok http 8080
 
 dependencies:

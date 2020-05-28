@@ -9,9 +9,8 @@ import (
 
 	"github.com/go-kit/kit/log"
 	redigo "github.com/gomodule/redigo/redis"
+	"github.com/jace-ys/go-library/redis"
 	"github.com/slack-go/slack"
-
-	"github.com/jace-ys/bingsoo/pkg/redis"
 )
 
 var (

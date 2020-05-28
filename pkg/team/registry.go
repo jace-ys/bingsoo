@@ -7,9 +7,8 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/jace-ys/go-library/postgres"
 	"github.com/jmoiron/sqlx"
-
-	"github.com/jace-ys/bingsoo/pkg/postgres"
 )
 
 var (

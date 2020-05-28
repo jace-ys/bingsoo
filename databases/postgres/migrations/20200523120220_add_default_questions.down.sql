@@ -1,1 +1,1 @@
-DELETE FROM questions WHERE id <= 10;
+DELETE FROM questions;

@@ -10,12 +10,12 @@ import (
 
 	"github.com/go-kit/kit/log"
 	"github.com/gorilla/mux"
+	"github.com/jace-ys/go-library/postgres"
+	"github.com/jace-ys/go-library/redis"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/slack-go/slack"
 
-	"github.com/jace-ys/bingsoo/pkg/postgres"
 	"github.com/jace-ys/bingsoo/pkg/question"
-	"github.com/jace-ys/bingsoo/pkg/redis"
 	"github.com/jace-ys/bingsoo/pkg/session"
 	"github.com/jace-ys/bingsoo/pkg/team"
 	"github.com/jace-ys/bingsoo/pkg/worker"
@@ -35,7 +35,7 @@ type BingsooBot struct {
 	secret   string
 }
 
-func NewBingsooBot(logger log.Logger, postgres *postgres.Client, redis *redis.Client, secret string) *BingsooBot {
+func NewBingsooBot(logger log.Logger, cfg *BingsooBotConfig, postgres *postgres.Client, redis *redis.Client) *BingsooBot {
 	bot := &BingsooBot{
 		logger:   logger,
 		server:   &http.Server{},
@@ -43,28 +43,32 @@ func NewBingsooBot(logger log.Logger, postgres *postgres.Client, redis *redis.Cl
 		team:     team.NewRegistry(postgres),
 		question: question.NewBank(postgres),
 		session:  session.NewManager(logger, redis),
-		secret:   secret,
+		secret:   cfg.SigningSecret,
 	}
-	bot.server.Handler = bot.handler()
+	bot.server.Handler = bot.router()
 	return bot
 }
 
 func (bot *BingsooBot) StartServer(port int) error {
 	bot.logger.Log("event", "server.started", "port", port)
 	defer bot.logger.Log("event", "server.stopped")
+
 	bot.server.Addr = fmt.Sprintf(":%d", port)
 	if err := bot.server.ListenAndServe(); err != nil {
 		return fmt.Errorf("failed to start server: %w", err)
 	}
+
 	return nil
 }
 
 func (bot *BingsooBot) StartWorkers(ctx context.Context, concurrency int) error {
 	bot.logger.Log("event", "workers.started", "concurrency", concurrency)
 	defer bot.logger.Log("event", "workers.stopped")
+
 	if err := bot.worker.Process(ctx, concurrency); err != nil {
 		return fmt.Errorf("failed to start workers: %w", err)
 	}
+
 	return nil
 }
 
@@ -72,14 +76,17 @@ func (bot *BingsooBot) Shutdown(ctx context.Context) error {
 	if err := bot.server.Shutdown(ctx); err != nil {
 		return fmt.Errorf("failed to shutdown server: %w", err)
 	}
+
 	if err := bot.worker.Close(); err != nil {
 		return fmt.Errorf("failed to shutdown workers: %w", err)
 	}
+
 	return nil
 }
 
-func (bot *BingsooBot) handler() http.Handler {
+func (bot *BingsooBot) router() http.Handler {
 	router := mux.NewRouter()
+
 	v1 := router.PathPrefix("/api/v1").Subrouter()
 	v1.Handle("/health", promhttp.Handler()).Methods(http.MethodGet)
 

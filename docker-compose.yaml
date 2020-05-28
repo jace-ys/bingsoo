@@ -10,11 +10,8 @@ services:
     environment:
       CONCURRENCY: 4
       PORT: 8080
-      POSTGRES_DB: bingsoo
-      POSTGRES_HOST: postgres:5432
-      POSTGRES_PASSWORD: bingsoo
-      POSTGRES_USER: bingsoo
-      REDIS_HOST: redis:6379
+      DATABASE_URL: postgres://bingsoo:bingsoo@postgres:5432/bingsoo?sslmode=disable
+      REDIS_URL: redis://redis:6379
 
   postgres:
     image: postgres:12.2-alpine
@@ -26,21 +23,18 @@ services:
       POSTGRES_USER: bingsoo
 
   postgres.init:
-    image: migrate/migrate:v4.10.0
+    image: migrate/migrate:v4.11.0
     entrypoint:
       - wait-for
       - postgres:5432
       - --
-      - /postgres/run-migrations.sh
+      - /run-migrations.sh
     environment:
-      MIGRATIONS_DIR: /postgres/migrations
-      POSTGRES_DB: bingsoo
-      POSTGRES_HOST: postgres:5432
-      POSTGRES_PASSWORD: bingsoo
-      POSTGRES_USER: bingsoo
+      DATABASE_URL: postgres://bingsoo:bingsoo@postgres:5432/bingsoo?sslmode=disable
     volumes:
       - ./bin/wait-for:/usr/local/bin/wait-for
-      - ./databases/postgres:/postgres
+      - ./databases/postgres/migrations:/migrations
+      - ./databases/postgres/run-migrations.sh:/run-migrations.sh
 
   redis:
     image: redis:5.0-alpine

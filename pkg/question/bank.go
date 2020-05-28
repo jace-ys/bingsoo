@@ -5,10 +5,9 @@ import (
 	"errors"
 	"math/rand"
 
+	"github.com/jace-ys/go-library/postgres"
 	"github.com/jmoiron/sqlx"
 	"github.com/slack-go/slack"
-
-	"github.com/jace-ys/bingsoo/pkg/postgres"
 )
 
 var (
