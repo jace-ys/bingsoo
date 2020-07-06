@@ -45,20 +45,31 @@ func (m *Manager) startAnswerPhase() ManageSessionFunc {
 
 func (m *Manager) selectParticipants(ctx context.Context, session *Session) (map[string]string, error) {
 	params := &slack.GetUsersInConversationParameters{ChannelID: session.Team.ChannelID}
-	users, _, err := session.slack.GetUsersInConversationContext(ctx, params)
+	userIDs, _, err := session.slack.GetUsersInConversationContext(ctx, params)
 	if err != nil {
 		return nil, err
 	}
 
-	// TODO: filter out bot users
+	users, err := session.slack.GetUsersInfoContext(ctx, userIDs...)
+	if err != nil {
+		return nil, err
+	}
+
+	var humans []string
+	for _, user := range *users {
+		if !user.IsBot {
+			humans = append(humans, user.ID)
+		}
+	}
+
 	quota := session.Team.ParticipantQuota
-	if len(users) < quota {
-		quota = len(users)
+	if len(humans) < quota {
+		quota = len(humans)
 	}
 
 	participants := make(map[string]string, quota)
 	for len(participants) < quota {
-		userID := users[rand.Intn(len(users))]
+		userID := humans[rand.Intn(len(humans))]
 		participants[userID] = ""
 	}
 
