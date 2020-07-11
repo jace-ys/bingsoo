@@ -16,18 +16,23 @@ jobs:
           key: ${{ runner.os }}-bingsoo-${{ hashFiles('go.sum') }}
           restore-keys: |
             ${{ runner.os }}-bingsoo-
+
       - name: Inject environment
         run: touch .env
+
       - name: Install dependencies
         run: go mod download
+
       - name: Lint
         run: |
-          if [[ -n "$(gofmt -l .)" ]]; then
-            exit 1
-          fi
+          make format
+          git diff --exit-code --name-only
+
       - name: Run tests
         run: make test
+
       - name: Build binary
         run: make build
+
       - name: Build image
         run: make image

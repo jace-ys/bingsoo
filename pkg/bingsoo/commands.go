@@ -76,7 +76,7 @@ func (bot *BingsooBot) commands(w http.ResponseWriter, r *http.Request) {
 					Text:         fmt.Sprintf("Hey <@%s>! Icebreaker sessions can only be started in the <#%s> channel.", sc.UserID, t.ChannelID),
 				})
 				return
-			case errors.Is(err, session.ErrExistingSession):
+			case errors.Is(err, session.ErrSessionExists):
 				bot.sendJSON(w, http.StatusOK, &slack.Msg{
 					ResponseType: slack.ResponseTypeEphemeral,
 					Text:         fmt.Sprintf("Hey <@%s>! An icebreaker session is already on-going in the <#%s> channel.", sc.UserID, t.ChannelID),

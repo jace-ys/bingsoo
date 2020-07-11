@@ -79,7 +79,7 @@ func (m *Manager) selectParticipants(ctx context.Context, session *Session) (map
 func (m *Manager) selectQuestion(session *Session) string {
 	var selected string
 	highest := -1
-	for question, votes := range session.QuestionSet {
+	for question, votes := range session.Questions {
 		if len(votes) > highest {
 			selected = question
 			highest = len(votes)

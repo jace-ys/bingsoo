@@ -42,7 +42,7 @@ func NewBingsooBot(logger log.Logger, cfg *BingsooBotConfig, postgres *postgres.
 		worker:   worker.NewWorkerPool(),
 		team:     team.NewRegistry(postgres),
 		question: question.NewBank(postgres),
-		session:  session.NewManager(logger, redis),
+		session:  session.NewManager(logger, redis, postgres),
 		secret:   cfg.SigningSecret,
 	}
 	bot.server.Handler = bot.router()

@@ -41,7 +41,7 @@ func (bot *BingsooBot) interactions(w http.ResponseWriter, r *http.Request) {
 	switch i.Type {
 	case slack.InteractionTypeBlockActions:
 		for _, action := range interaction.ParseBlockActions(i) {
-			err := bot.session.HandleInteractionAction(t.TeamID, action)
+			err := bot.session.HandleInteractionAction(ctx, t.TeamID, action)
 			if err != nil {
 				logger.Log("event", "interaction.failed", "error", err)
 				return
@@ -49,7 +49,7 @@ func (bot *BingsooBot) interactions(w http.ResponseWriter, r *http.Request) {
 		}
 	case slack.InteractionTypeViewSubmission:
 		for _, response := range interaction.ParseViewSubmission(i) {
-			err := bot.session.HandleInteractionResponse(t.TeamID, response)
+			err := bot.session.HandleInteractionResponse(ctx, t.TeamID, response)
 			if err != nil {
 				logger.Log("event", "interaction.failed", "error", err)
 				return

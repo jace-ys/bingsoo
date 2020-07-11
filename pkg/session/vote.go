@@ -20,7 +20,7 @@ func (m *Manager) startVotePhase() ManageSessionFunc {
 		}
 		session.CurrentPhase = PhaseVote
 
-		voteMessage := message.VoteMessage(session.ID.String(), session.QuestionSet)
+		voteMessage := message.VoteMessage(session.ID.String(), session.Questions)
 		channel, timestamp, err := session.slack.PostMessageContext(ctx, session.Team.ChannelID, voteMessage)
 		if err != nil {
 			return err
@@ -54,12 +54,12 @@ func (m *Manager) handleVoteInput(response *interaction.Payload) ManageSessionFu
 			return err
 		}
 
-		err = session.QuestionSet.AddVote(response.Value, user)
+		err = session.Questions.AddVote(response.Value, user)
 		if err != nil {
 			return err
 		}
 
-		voteMessage := message.VoteMessage(session.ID.String(), session.QuestionSet)
+		voteMessage := message.VoteMessage(session.ID.String(), session.Questions)
 		channel, timestamp, _, err := session.slack.UpdateMessageContext(ctx, session.VoteMessage.Channel, session.VoteMessage.Timestamp, voteMessage)
 		if err != nil {
 			return err
@@ -74,12 +74,12 @@ func (m *Manager) handleSuggestionInput(response *interaction.Payload) ManageSes
 	return func(ctx context.Context, logger log.Logger, session *Session) error {
 		logger.Log("event", "input.handled", "type", "suggestion")
 
-		err := session.QuestionSet.AddQuestion(response.Value)
+		err := session.Questions.AddQuestion(response.Value)
 		if err != nil {
 			return err
 		}
 
-		voteMessage := message.VoteMessage(session.ID.String(), session.QuestionSet)
+		voteMessage := message.VoteMessage(session.ID.String(), session.Questions)
 		channel, timestamp, _, err := session.slack.UpdateMessageContext(ctx, session.VoteMessage.Channel, session.VoteMessage.Timestamp, voteMessage)
 		if err != nil {
 			return err

@@ -26,7 +26,7 @@ const (
 type Session struct {
 	ID               uuid.UUID
 	Team             *team.Team
-	QuestionSet      question.QuestionSet
+	Questions        question.QuestionSet
 	SelectedQuestion string
 	Participants     map[string]string
 
@@ -45,11 +45,11 @@ func (m *Manager) NewIcebreaker(ctx context.Context, team *team.Team, questions 
 	session := &Session{
 		ID:                  uuid.New(),
 		Team:                team,
-		QuestionSet:         questions,
+		Questions:           questions,
 		CurrentPhase:        PhaseNone,
 		VotePhaseDeadline:   duration / 2,
 		AnswerPhaseDeadline: duration / 2,
-		ExpiresAt:           time.Now().Add(duration).Add(5 * time.Second),
+		ExpiresAt:           time.Now().Add(duration).Add(30 * time.Second),
 	}
 
 	err := m.validateSession(session, channelID)
@@ -69,17 +69,20 @@ func (m *Manager) StartSession(ctx context.Context, session *Session) error {
 	logger := log.With(m.logger, "session", session.ID, "team", session.Team.TeamID, "channel", session.Team.ChannelID)
 	logger.Log("event", "session.started")
 
-	err := m.ManageSession(logger, session.Team.TeamID, session.ID.String(), m.startVotePhase())
+	err := m.ManageSession(ctx, logger, session.Team.TeamID, session.ID.String(), m.startVotePhase())
 	if err != nil {
 		return err
 	}
 
 	time.AfterFunc(session.VotePhaseDeadline, func() {
-		err = m.ManageSession(logger, session.Team.TeamID, session.ID.String(), m.startAnswerPhase())
+		ctx, cancel := context.WithCancel(context.Background())
+		defer cancel()
+
+		err = m.ManageSession(ctx, logger, session.Team.TeamID, session.ID.String(), m.startAnswerPhase())
 		if err != nil {
 			logger.Log("event", "session.teardown", "error", err)
 
-			err = m.TeardownSession(context.Background(), session)
+			err = m.TeardownSession(ctx, session)
 			if err != nil {
 				logger.Log("event", "session.teardown.failed", "error", err)
 			}
@@ -88,11 +91,14 @@ func (m *Manager) StartSession(ctx context.Context, session *Session) error {
 		}
 
 		time.AfterFunc(session.AnswerPhaseDeadline, func() {
-			err = m.ManageSession(logger, session.Team.TeamID, session.ID.String(), m.startResultsPhase())
+			ctx, cancel := context.WithCancel(context.Background())
+			defer cancel()
+
+			err = m.ManageSession(ctx, logger, session.Team.TeamID, session.ID.String(), m.startResultsPhase())
 			if err != nil {
 				logger.Log("event", "session.teardown", "error", err)
 
-				err = m.TeardownSession(context.Background(), session)
+				err = m.TeardownSession(ctx, session)
 				if err != nil {
 					logger.Log("event", "session.teardown.failed", "error", err)
 				}
@@ -101,7 +107,13 @@ func (m *Manager) StartSession(ctx context.Context, session *Session) error {
 			}
 
 			logger.Log("event", "session.finished")
-			// TODO: save session data
+
+			_, err := m.saveSession(ctx, session.Team.TeamID)
+			if err != nil {
+				logger.Log("event", "session.save.failed", "error", err)
+				return
+			}
+
 			logger.Log("event", "session.saved")
 		})
 	})
@@ -126,21 +138,21 @@ func (m *Manager) TeardownSession(ctx context.Context, session *Session) error {
 	return nil
 }
 
-func (m *Manager) HandleInteractionAction(teamID string, action *interaction.Payload) error {
+func (m *Manager) HandleInteractionAction(ctx context.Context, teamID string, action *interaction.Payload) error {
 	logger := log.With(m.logger, "session", action.SessionID, "block", action.BlockID, "value", action.Value)
 	switch action.ActionID {
 	case interaction.ActionVoteSubmit:
-		err := m.ManageSession(logger, teamID, action.SessionID.String(), m.handleVoteInput(action))
+		err := m.ManageSession(ctx, logger, teamID, action.SessionID.String(), m.handleVoteInput(action))
 		if err != nil {
 			return err
 		}
 	case interaction.ActionSuggestionView:
-		err := m.ManageSession(logger, teamID, action.SessionID.String(), m.openSuggestionModal(action))
+		err := m.ManageSession(ctx, logger, teamID, action.SessionID.String(), m.openSuggestionModal(action))
 		if err != nil {
 			return err
 		}
 	case interaction.ActionQuestionView:
-		err := m.ManageSession(logger, teamID, action.SessionID.String(), m.openQuestionModal(action))
+		err := m.ManageSession(ctx, logger, teamID, action.SessionID.String(), m.openQuestionModal(action))
 		if err != nil {
 			return err
 		}
@@ -148,16 +160,16 @@ func (m *Manager) HandleInteractionAction(teamID string, action *interaction.Pay
 	return nil
 }
 
-func (m *Manager) HandleInteractionResponse(teamID string, response *interaction.Payload) error {
+func (m *Manager) HandleInteractionResponse(ctx context.Context, teamID string, response *interaction.Payload) error {
 	logger := log.With(m.logger, "session", response.SessionID, "block", response.BlockID, "value", response.Value)
 	switch response.ActionID {
 	case interaction.ResponseSuggestionSubmit:
-		err := m.ManageSession(logger, teamID, response.SessionID.String(), m.handleSuggestionInput(response))
+		err := m.ManageSession(ctx, logger, teamID, response.SessionID.String(), m.handleSuggestionInput(response))
 		if err != nil {
 			return err
 		}
 	case interaction.ResponseAnswerSubmit:
-		err := m.ManageSession(logger, teamID, response.SessionID.String(), m.handleAnswerInput(response))
+		err := m.ManageSession(ctx, logger, teamID, response.SessionID.String(), m.handleAnswerInput(response))
 		if err != nil {
 			return err
 		}

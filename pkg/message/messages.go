@@ -65,7 +65,7 @@ Answer the following question to participate.`, channelID)
 
 	return slack.MsgOptionCompose(
 		slack.MsgOptionBlocks(blocks...),
-		slack.MsgOptionText(headerText, true),
+		slack.MsgOptionText(headerText, false),
 	)
 }
 
