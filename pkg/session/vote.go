@@ -20,8 +20,8 @@ func (m *Manager) startVotePhase() ManageSessionFunc {
 		}
 		session.CurrentPhase = PhaseVote
 
-		voteMessage := message.VoteBlock(session.ID.String(), session.QuestionSet)
-		channel, timestamp, err := session.slack.PostMessageContext(ctx, session.Team.ChannelID, slack.MsgOptionBlocks(voteMessage.BlockSet...))
+		voteMessage := message.VoteMessage(session.ID.String(), session.QuestionSet)
+		channel, timestamp, err := session.slack.PostMessageContext(ctx, session.Team.ChannelID, voteMessage)
 		if err != nil {
 			return err
 		}
@@ -59,8 +59,8 @@ func (m *Manager) handleVoteInput(response *interaction.Payload) ManageSessionFu
 			return err
 		}
 
-		voteMessage := message.VoteBlock(session.ID.String(), session.QuestionSet)
-		channel, timestamp, _, err := session.slack.UpdateMessageContext(ctx, session.VoteMessage.Channel, session.VoteMessage.Timestamp, slack.MsgOptionBlocks(voteMessage.BlockSet...))
+		voteMessage := message.VoteMessage(session.ID.String(), session.QuestionSet)
+		channel, timestamp, _, err := session.slack.UpdateMessageContext(ctx, session.VoteMessage.Channel, session.VoteMessage.Timestamp, voteMessage)
 		if err != nil {
 			return err
 		}
@@ -79,8 +79,8 @@ func (m *Manager) handleSuggestionInput(response *interaction.Payload) ManageSes
 			return err
 		}
 
-		voteMessage := message.VoteBlock(session.ID.String(), session.QuestionSet)
-		channel, timestamp, _, err := session.slack.UpdateMessageContext(ctx, session.VoteMessage.Channel, session.VoteMessage.Timestamp, slack.MsgOptionBlocks(voteMessage.BlockSet...))
+		voteMessage := message.VoteMessage(session.ID.String(), session.QuestionSet)
+		channel, timestamp, _, err := session.slack.UpdateMessageContext(ctx, session.VoteMessage.Channel, session.VoteMessage.Timestamp, voteMessage)
 		if err != nil {
 			return err
 		}

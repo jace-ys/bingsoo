@@ -117,8 +117,8 @@ func (m *Manager) TeardownSession(ctx context.Context, session *Session) error {
 
 	session.slack = slack.New(session.Team.AccessToken)
 
-	errorMessage := message.ErrorBlock()
-	_, _, err = session.slack.PostMessageContext(ctx, session.Team.ChannelID, slack.MsgOptionBlocks(errorMessage.BlockSet...))
+	errorMessage := message.ErrorMessage()
+	_, _, err = session.slack.PostMessageContext(ctx, session.Team.ChannelID, errorMessage)
 	if err != nil {
 		return err
 	}

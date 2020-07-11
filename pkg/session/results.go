@@ -5,7 +5,6 @@ import (
 	"fmt"
 
 	"github.com/go-kit/kit/log"
-	"github.com/slack-go/slack"
 
 	"github.com/jace-ys/bingsoo/pkg/message"
 )
@@ -29,8 +28,8 @@ func (m *Manager) startResultsPhase() ManageSessionFunc {
 }
 
 func (m *Manager) releaseResults(ctx context.Context, session *Session) error {
-	resultMessage := message.ResultBlock(session.SelectedQuestion, session.Participants)
-	_, _, err := session.slack.PostMessageContext(ctx, session.Team.ChannelID, slack.MsgOptionBlocks(resultMessage.BlockSet...))
+	resultMessage := message.ResultMessage(session.SelectedQuestion, session.Participants)
+	_, _, err := session.slack.PostMessageContext(ctx, session.Team.ChannelID, resultMessage)
 	if err != nil {
 		return err
 	}

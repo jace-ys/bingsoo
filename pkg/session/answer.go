@@ -96,8 +96,8 @@ func (m *Manager) deliverQuestion(ctx context.Context, session *Session) error {
 			return err
 		}
 
-		questionMessage := message.QuestionBlock(session.ID.String(), session.Team.ChannelID)
-		_, _, err = session.slack.PostMessageContext(ctx, channel.ID, slack.MsgOptionBlocks(questionMessage.BlockSet...))
+		questionMessage := message.QuestionMessage(session.ID.String(), session.Team.ChannelID)
+		_, _, err = session.slack.PostMessageContext(ctx, channel.ID, questionMessage)
 		if err != nil {
 			return err
 		}
