@@ -34,8 +34,8 @@ func (b *Bank) List(ctx context.Context) ([]*Question, error) {
 	var questions []*Question
 	err := b.database.Transact(ctx, func(tx *sqlx.Tx) error {
 		query := `
-		SELECT q.id, q.value
-		FROM questions AS q
+		SELECT id, value
+		FROM questions
 		`
 		rows, err := tx.QueryxContext(ctx, query)
 		if err != nil {

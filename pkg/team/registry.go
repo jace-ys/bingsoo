@@ -40,9 +40,9 @@ func (r *Registry) Get(ctx context.Context, teamID string) (*Team, error) {
 	var team Team
 	err := r.database.Transact(ctx, func(tx *sqlx.Tx) error {
 		query := `
-		SELECT t.id, t.created_at, t.team_id, t.team_domain, t.access_token, t.channel_id, t.session_duration_mins, t.participant_quota
-		FROM teams AS t
-		WHERE t.team_id=$1
+		SELECT id, created_at, team_id, team_domain, access_token, channel_id, session_duration_mins, participant_quota
+		FROM teams
+		WHERE team_id=$1
 		`
 		row := tx.QueryRowxContext(ctx, query, teamID)
 		return row.StructScan(&team)

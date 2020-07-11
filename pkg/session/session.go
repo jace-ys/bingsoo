@@ -9,6 +9,7 @@ import (
 	"github.com/slack-go/slack"
 
 	"github.com/jace-ys/bingsoo/pkg/interaction"
+	"github.com/jace-ys/bingsoo/pkg/message"
 	"github.com/jace-ys/bingsoo/pkg/question"
 	"github.com/jace-ys/bingsoo/pkg/team"
 )
@@ -47,7 +48,7 @@ func (m *Manager) NewIcebreaker(ctx context.Context, team *team.Team, questions 
 		QuestionSet:         questions,
 		CurrentPhase:        PhaseNone,
 		VotePhaseDeadline:   duration / 2,
-		AnswerPhaseDeadline: duration,
+		AnswerPhaseDeadline: duration / 2,
 		ExpiresAt:           time.Now().Add(duration).Add(5 * time.Second),
 	}
 
@@ -76,22 +77,51 @@ func (m *Manager) StartSession(ctx context.Context, session *Session) error {
 	time.AfterFunc(session.VotePhaseDeadline, func() {
 		err = m.ManageSession(logger, session.Team.TeamID, session.ID.String(), m.startAnswerPhase())
 		if err != nil {
-			m.logger.Log("event", "session.failed")
-			m.TeardownSession(logger, session)
-		}
-	})
+			logger.Log("event", "session.teardown", "error", err)
 
-	time.AfterFunc(session.AnswerPhaseDeadline, func() {
-		defer m.logger.Log("event", "session.finished")
+			err = m.TeardownSession(context.Background(), session)
+			if err != nil {
+				logger.Log("event", "session.teardown.failed", "error", err)
+			}
 
-		err = m.ManageSession(logger, session.Team.TeamID, session.ID.String(), m.startResultsPhase())
-		if err != nil {
-			m.logger.Log("event", "session.failed")
-			m.TeardownSession(logger, session)
+			return
 		}
 
-		// TODO: save session data
+		time.AfterFunc(session.AnswerPhaseDeadline, func() {
+			err = m.ManageSession(logger, session.Team.TeamID, session.ID.String(), m.startResultsPhase())
+			if err != nil {
+				logger.Log("event", "session.teardown", "error", err)
+
+				err = m.TeardownSession(context.Background(), session)
+				if err != nil {
+					logger.Log("event", "session.teardown.failed", "error", err)
+				}
+
+				return
+			}
+
+			logger.Log("event", "session.finished")
+			// TODO: save session data
+			logger.Log("event", "session.saved")
+		})
 	})
+
+	return nil
+}
+
+func (m *Manager) TeardownSession(ctx context.Context, session *Session) error {
+	err := m.deleteSession(ctx, session.Team.TeamID)
+	if err != nil {
+		return err
+	}
+
+	session.slack = slack.New(session.Team.AccessToken)
+
+	errorMessage := message.ErrorBlock()
+	_, _, err = session.slack.PostMessageContext(ctx, session.Team.ChannelID, slack.MsgOptionBlocks(errorMessage.BlockSet...))
+	if err != nil {
+		return err
+	}
 
 	return nil
 }

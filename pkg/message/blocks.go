@@ -118,6 +118,18 @@ Did someone forget to tell me today was a holiday? :see_no_evil:`
 	return slack.Blocks{BlockSet: blocks}
 }
 
+func ErrorBlock() slack.Blocks {
+	var blocks []slack.Block
+
+	headerText := `Seems like an unexpected error has occurred :disappointed:
+The icebreaker session has been ended, please try again later.`
+	headerTextBlock := slack.NewTextBlockObject(slack.MarkdownType, headerText, false, false)
+	headerSectionBlock := slack.NewSectionBlock(headerTextBlock, nil, nil)
+	blocks = append(blocks, headerSectionBlock)
+
+	return slack.Blocks{BlockSet: blocks}
+}
+
 func sortQuestions(questions question.QuestionSet) []string {
 	type pair struct {
 		key   string

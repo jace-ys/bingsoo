@@ -61,11 +61,6 @@ func (m *Manager) ManageSession(logger log.Logger, teamID, sessionID string, man
 	return nil
 }
 
-func (m *Manager) TeardownSession(logger log.Logger, session *Session) {
-	logger.Log("event", "session.cleanup")
-	// TODO: clean up session in the face of error
-}
-
 func (m *Manager) validateSession(session *Session, channelID string) error {
 	if channelID != session.Team.ChannelID {
 		return ErrUnauthorizedChannel
@@ -138,4 +133,11 @@ func (m *Manager) cacheSession(ctx context.Context, session *Session) error {
 	}
 
 	return err
+}
+
+func (m *Manager) deleteSession(ctx context.Context, teamID string) error {
+	return m.redis.Transact(ctx, func(conn redigo.Conn) error {
+		_, err := conn.Do("DEL", teamID)
+		return err
+	})
 }
