@@ -3,7 +3,6 @@ module github.com/jace-ys/bingsoo
 go 1.14
 
 require (
-	github.com/alecthomas/kingpin v2.2.6+incompatible
 	github.com/go-kit/kit v0.10.0
 	github.com/gomodule/redigo v1.8.2
 	github.com/google/uuid v1.1.1
@@ -14,4 +13,5 @@ require (
 	github.com/prometheus/client_golang v1.7.1
 	github.com/slack-go/slack v0.6.5
 	golang.org/x/sync v0.0.0-20200625203802-6e8e738ad208
+	gopkg.in/alecthomas/kingpin.v2 v2.2.6
 )
