@@ -79,7 +79,7 @@ func (m *Manager) initSession(ctx context.Context, session *Session) error {
 	}
 
 	ttl := session.ExpiresAt.Sub(time.Now()) / time.Second
-	err = m.cache.Transact(ctx, func(conn redigo.Conn) error {
+	err = m.cache.Call(ctx, func(conn redigo.Conn) error {
 		_, err := redigo.String(conn.Do("SET", session.Team.TeamID, string(data), "NX", "EX", strconv.Itoa(int(ttl))))
 		return err
 	})
@@ -97,7 +97,7 @@ func (m *Manager) initSession(ctx context.Context, session *Session) error {
 
 func (m *Manager) retrieveSession(ctx context.Context, teamID string) (session *Session, err error) {
 	var data []byte
-	err = m.cache.Transact(ctx, func(conn redigo.Conn) error {
+	err = m.cache.Call(ctx, func(conn redigo.Conn) error {
 		data, err = redigo.Bytes(conn.Do("GET", teamID))
 		if err != nil {
 			return err
@@ -128,7 +128,7 @@ func (m *Manager) cacheSession(ctx context.Context, session *Session) error {
 	}
 
 	ttl := session.ExpiresAt.Sub(time.Now()) / time.Second
-	err = m.cache.Transact(ctx, func(conn redigo.Conn) error {
+	err = m.cache.Call(ctx, func(conn redigo.Conn) error {
 		_, err := conn.Do("SET", session.Team.TeamID, string(data), "EX", strconv.Itoa(int(ttl)))
 		return err
 	})
@@ -140,7 +140,7 @@ func (m *Manager) cacheSession(ctx context.Context, session *Session) error {
 }
 
 func (m *Manager) deleteSession(ctx context.Context, teamID string) error {
-	return m.cache.Transact(ctx, func(conn redigo.Conn) error {
+	return m.cache.Call(ctx, func(conn redigo.Conn) error {
 		_, err := conn.Do("DEL", teamID)
 		return err
 	})

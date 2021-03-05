@@ -21,11 +21,8 @@ func main() {
 	logger = log.NewLogfmtLogger(log.NewSyncWriter(os.Stdout))
 	logger = log.With(logger, "ts", log.DefaultTimestampUTC, "caller", log.DefaultCaller)
 
-	postgres, err := postgres.NewClient(c.database.ConnectionURL)
-	if err != nil {
-		exit(err)
-	}
-	redis, err := redis.NewClient(c.cache.ConnectionURL)
+	redis := redis.NewClient(c.cache.connectionURL)
+	postgres, err := postgres.NewClient(c.database.connectionURL)
 	if err != nil {
 		exit(err)
 	}
@@ -62,8 +59,12 @@ type config struct {
 	port        int
 	concurrency int
 	bot         bingsoo.BingsooBotConfig
-	database    postgres.ClientConfig
-	cache       redis.ClientConfig
+	database    struct {
+		connectionURL string
+	}
+	cache struct {
+		connectionURL string
+	}
 }
 
 func parseCommand() *config {
@@ -72,8 +73,8 @@ func parseCommand() *config {
 	kingpin.Flag("port", "Port for the Bingsoo server.").Envar("PORT").Default("8080").IntVar(&c.port)
 	kingpin.Flag("concurrency", "Number of concurrent workers to process tasks.").Envar("CONCURRENCY").Default("4").IntVar(&c.concurrency)
 	kingpin.Flag("signing-secret", "Signing secret for verifying requests from Slack.").Envar("SIGNING_SECRET").Required().StringVar(&c.bot.SigningSecret)
-	kingpin.Flag("database-url", "URL for connecting to Postgres.").Envar("DATABASE_URL").Default("postgres://bingsoo:bingsoo@127.0.0.1:5432/bingsoo").StringVar(&c.database.ConnectionURL)
-	kingpin.Flag("redis-url", "URL for connecting to Redis.").Envar("REDIS_URL").Default("redis://127.0.0.1:6379").StringVar(&c.cache.ConnectionURL)
+	kingpin.Flag("database-url", "URL for connecting to Postgres.").Envar("DATABASE_URL").Default("postgres://bingsoo:bingsoo@127.0.0.1:5432/bingsoo").StringVar(&c.database.connectionURL)
+	kingpin.Flag("redis-url", "URL for connecting to Redis.").Envar("REDIS_URL").Default("redis://127.0.0.1:6379").StringVar(&c.cache.connectionURL)
 	kingpin.Parse()
 
 	return &c
